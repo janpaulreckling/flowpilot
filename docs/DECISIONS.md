@@ -175,3 +175,7 @@ Tools, evidence validator, rule-based investigator and the LLM agent loop as bui
 ## D32 — Phase 8 approved (2026-11-17, approved)
 
 Full UI on the real API as built. Next: Phase 9, an independent quality review; findings are prioritized and presented before any change.
+
+## D33 — Act on the independent review: evidence guard, API hardening, method v2, incidents (2026-11-17, approved)
+
+All four fix bundles from the Phase 9 review are implemented: (A) stricter evidence validator and agent safeguards, (B) API stability and security, (C) a documented **method v2** for the monitor, investigator, guardrails and evaluation, reported with before/after numbers because it changes rules fixed before the first runs, (E) alerts grouped into incidents in the Decision Center (F20).
