@@ -167,3 +167,7 @@ Experimentation engine as built. Phase 7 builds the read-only tools, evidence tr
 The full agent loop is built and tested with a scripted model (no cost). Real runs wait for the product owner's own API key; until then the UI labels the LLM mode as not enabled and investigations run rule-based.
 
 - **Rejected:** getting a key first (blocks the build); dropping the agent (loses the main differentiator).
+
+## D31 — Phase 7 approved (2026-11-17, approved)
+
+Tools, evidence validator, rule-based investigator and the LLM agent loop as built. Next: Phase 8, the full UI on the real API.

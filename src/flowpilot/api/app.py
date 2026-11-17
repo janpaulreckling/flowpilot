@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 from flowpilot import __version__
 from flowpilot.appstate import db as appdb
+from flowpilot.appstate import decisions as dec_store
 from flowpilot.appstate import investigations as inv_store
 from flowpilot.appstate.alerts import StoredAlert, list_alerts
 from flowpilot.experiments.analysis import ExperimentAnalysis, analyze
@@ -295,3 +296,45 @@ def get_investigation(investigation_id: str) -> inv_store.InvestigationRecord:
     if record is None:
         raise HTTPException(status_code=404, detail=f"no investigation {investigation_id}")
     return record
+
+
+@app.post("/api/decisions", status_code=201)
+def post_decision(con: Analytics, body: dec_store.DecisionIn) -> dec_store.Decision:
+    """Record a human decision. Proposals are investigations; experiments must exist."""
+    app_con = appdb.connect(get_paths().app_db)
+    try:
+        alert_id = None
+        if body.subject_type in ("proposal", "finding"):
+            row = app_con.execute("SELECT alert_id FROM investigations WHERE investigation_id = ?",
+                                  [body.subject_id]).fetchone()
+            if row is None:
+                raise HTTPException(status_code=404, detail=f"no investigation {body.subject_id}")
+            alert_id = row[0]
+        elif con.execute("SELECT 1 FROM experiments WHERE experiment_id = ?",
+                         [body.subject_id]).fetchone() is None:
+            raise HTTPException(status_code=404, detail=f"no experiment {body.subject_id}")
+        return dec_store.record(app_con, body, alert_id)
+    finally:
+        app_con.close()
+
+
+@app.get("/api/decisions")
+def get_decisions() -> list[dec_store.Decision]:
+    app_con = appdb.connect(get_paths().app_db)
+    try:
+        return dec_store.list_decisions(app_con)
+    finally:
+        app_con.close()
+
+
+@app.get("/api/ground-truth")
+def ground_truth() -> dict[str, object]:
+    """The injected scenarios, for the 'About the data' page only. The monitor and the
+    investigators never call this."""
+    path = get_paths().raw_dir / "ground_truth.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="ground truth not generated")
+    import json
+
+    data: dict[str, object] = json.loads(path.read_text())
+    return data

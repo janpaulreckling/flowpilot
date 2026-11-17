@@ -117,3 +117,28 @@ def test_llm_mode_is_refused_without_a_key(
     assert client.get("/api/capabilities").json() == {"llm_enabled": False, "model": None}
     r = client.post("/api/alerts/A-0001/investigate", params={"mode": "llm"})
     assert r.status_code == 409 and "Rule-based" in r.json()["detail"]
+
+
+def test_decisions_require_a_note_and_an_existing_subject(
+    world: World, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "flowpilot.duckdb").write_bytes(world.db_path.read_bytes())
+    monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
+    main(["monitor"])
+    client = TestClient(app)
+    alert_id = client.get("/api/alerts").json()[0]["alert"]["alert_id"]
+    inv = client.post(f"/api/alerts/{alert_id}/investigate").json()["investigation_id"]
+    base = {"subject_type": "proposal", "subject_id": inv, "outcome": "approved"}
+    assert client.post("/api/decisions", json={**base, "note": "   "}).status_code == 422
+    assert client.post("/api/decisions", json={**base, "subject_id": "INV-x",
+                                               "note": "ok"}).status_code == 404
+    assert client.post("/api/decisions", json={"subject_type": "experiment",
+                                               "subject_id": "E9", "outcome": "approved",
+                                               "note": "ok"}).status_code == 404
+    made = client.post("/api/decisions", json={**base, "note": "Ship the fix in 4.13."})
+    assert made.status_code == 201
+    assert client.get("/api/decisions").json()[0]["note"] == "Ship the fix in 4.13."
+    status = {a["alert"]["alert_id"]: a["status"] for a in client.get("/api/alerts").json()}
+    assert status[alert_id] == "reviewed"
