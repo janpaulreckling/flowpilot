@@ -64,7 +64,7 @@ class ExperimentAnalysis(BaseModel):
     rationale: list[str]
 
 
-def _arms(engine: MetricEngine, metric: str, experiment_id: str,
+def compare_arms(engine: MetricEngine, metric: str, experiment_id: str,
           mature_by: date) -> tuple[Comparison | None, bool]:
     """Compare arms on units whose metric window has closed by `mature_by`."""
     lag = engine.definition(metric).lag_days
@@ -119,8 +119,8 @@ def analyze(
                        detail="share of assigned workspaces with an exposure record"),
     ]
 
-    primary, primary_mature = _arms(engine, primary_metric, experiment_id, as_of)
-    guard_cmp = [(m, *_arms(engine, m, experiment_id, as_of)) for m in guardrail_metrics]
+    primary, primary_mature = compare_arms(engine, primary_metric, experiment_id, as_of)
+    guard_cmp = [(m, *compare_arms(engine, m, experiment_id, as_of)) for m in guardrail_metrics]
     measurable = [c for _, c, _ in guard_cmp if c is not None]
     adjusted = iter(holm([c.p_harm for c in measurable]))
     guardrails = []

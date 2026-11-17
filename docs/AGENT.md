@@ -50,3 +50,23 @@ Hypotheses always checked:
 **Tracking-gap alerts.** `data_quality_report` for the platform and days → events missing while sessions are normal → finding (supported) that the drop is a tracking issue; `conclusion_supported = false` for behavioral metrics in that window; recommendation: fix tracking and re-check affected metrics.
 
 **Recommendation.** Localized regression with a release → fix and verify (compare cohorts on the fixed version; no experiment needed). Localized change without a release → investigate the segment (experiment plan with the planner if a product change is proposed). Data-quality issue → fix tracking. Nothing localized and mix not decisive → no conclusion; keep monitoring.
+
+## Measured results — rule-based investigator (default dataset)
+
+Every decline alert of the back-test was investigated and scored with the fixed criteria in `src/flowpilot/evaluation/investigation_eval.py`. Reproduce with `uv run pytest tests/test_investigation.py`.
+
+| Alert | Scenario | Result | Note |
+|---|---|---|---|
+| A-0064, A-0066, A-0067 (activation) | S1 | **pass** (7/7 checks each) | iOS → version 4.12 → step "invite sent" (45.7% vs 69.9%), release Oct 26 inside the period, calendar ruled out, mix not blamed, fix-and-verify |
+| A-0060 (week-4 retention, paid social) | S2 | **pass** | localized to paid social (−5.2 pp vs +0.9 pp elsewhere), activation unchanged → retention, not onboarding; also lists E3 as a partial competing explanation |
+| A-0061 (task_created, Android) | S5 | **pass** | events per session −100% on 7.3 vs +2% on other versions, sessions normal → tracking gap, no behavioral conclusion |
+| A-0018 (week-1 retention, paid social, July) | false alarm | **pass** | "The available data does not support a reliable conclusion." |
+| A-0065 (week-4 retention) | E3 | **pass** | experiment named, no segment blamed |
+| A-0062, A-0063 (week-1 retention) | E3 | **fail** | E3 is named, but the report also calls the change "concentrated" in company size '1-10': the concentration rule favors large segments when an effect is spread evenly |
+
+All reports pass the evidence validator; no tool call failed.
+
+Changes made after the first run, none to a decision threshold:
+1. **Validator false positives:** digits inside names ("week-4", company size "1-10") were read as measurements. Fixed by ignoring hyphenated tokens and quoting category values.
+2. **Data-quality tool:** the first version compared raw event counts per app version, which mixed the tracking gap with users moving from 7.2 to 7.3 ("other versions −82%"). It now compares **events per session** per version.
+3. A parsing bug for version keys containing a dot.

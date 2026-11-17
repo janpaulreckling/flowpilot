@@ -18,3 +18,8 @@ Honest list of what FlowPilot does not do well yet. Each entry says where it sho
 - **Dataset experiments use owner-level metrics.** The delta-method path for several users per workspace is validated by simulation, but none of E1–E4 uses a user-level metric yet.
 - **Planner MDE is an approximation** (variance evaluated at the baseline rate).
 - **E3's primary effect is not detectable at this sample size:** the true +1.5 pp lift in trial-to-paid comes out at +0.8 pp with a CI spanning zero; the guardrail decides that experiment.
+
+## Investigations
+- **Concentration favors large segments.** The rule-based investigator calls a change "concentrated" when one segment carries most of it; an evenly spread effect (E3's treatment) can then be attributed to the largest segment. 2 of 9 back-test alerts are scored as failures for this reason (AGENT.md).
+- **The rule-based investigator follows one fixed playbook.** It does not try dimensions beyond platform, channel and company size, and its recommendations are templates.
+- **The LLM agent is not enabled yet** (D14): API access and the model are still to be decided.

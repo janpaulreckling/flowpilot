@@ -36,8 +36,14 @@
 - Measured: E1 ship, E2 no meaningful effect, E3 don't ship (guardrail), E4 invalid (SRM) — all match ground truth. A/A simulations pass; a crash in interim looks was found and fixed with a regression test.
 - API: `/api/experiments`, `/api/experiments/{id}?as_of=`, `/api/planner`. 85 pytest tests.
 
+## 2026-11-17 — Phase 7 part 1: tools, evidence, rule-based investigator
+- Rules committed before the first run (`docs/AGENT.md`); D29 Phase 6 approved.
+- 11 read-only tools with recorded evidence (input, output, SHA-256, duration) and named facts; report schema; evidence validator that rejects any number not matching a cited fact.
+- Rule-based investigator per the committed playbook; investigations stored with all tool calls; API `POST /api/alerts/{id}/investigate`, `GET /api/investigations/{id}`.
+- Measured: 7 of 9 decline alerts investigated correctly (S1 ×3, S2, S5, false alarm, one E3); 2 E3 alerts fail on segment attribution (documented).
+- 98 pytest tests.
+
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Product-owner feedback on the design prototype.
-- Product-owner approval of Phase 6.
-- Phase 7: investigation agent (tools, evidence, rule-based investigator first; LLM model choice per D14).
+- Phase 7 part 2: LLM agent loop (D4, D14).

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import date
+from datetime import UTC, date, datetime
 from typing import Annotated
 
 import duckdb
@@ -12,9 +12,13 @@ from pydantic import BaseModel
 
 from flowpilot import __version__
 from flowpilot.appstate import db as appdb
+from flowpilot.appstate import investigations as inv_store
 from flowpilot.appstate.alerts import StoredAlert, list_alerts
 from flowpilot.experiments.analysis import ExperimentAnalysis, analyze
 from flowpilot.experiments.stats import detectable_effect, units_per_arm
+from flowpilot.investigation.report import validate
+from flowpilot.investigation.rule_based import investigate
+from flowpilot.investigation.tools import Toolbox
 from flowpilot.metrics.engine import (
     FunnelResult,
     Grain,
@@ -209,3 +213,44 @@ def planner(
         mde_after_weeks={w: detectable_effect(baseline, int(per_arm_week * w))
                          for w in (1, 2, 4, 8)} if per_arm_week else None,
     )
+
+
+@app.post("/api/alerts/{alert_id}/investigate")
+def run_investigation(con: Analytics, alert_id: str) -> inv_store.InvestigationRecord:
+    """Run the rule-based investigator (no LLM) on an alert and store the result."""
+    app_con = appdb.connect(get_paths().app_db)
+    try:
+        stored = list_alerts(app_con)
+        tools = Toolbox(MetricEngine(con), stored)
+        alert = tools.alerts.get(alert_id)
+        if alert is None:
+            raise HTTPException(status_code=404, detail=f"no alert {alert_id}")
+        started = datetime.now(UTC).isoformat(timespec="seconds")
+        report, log = investigate(tools, alert)
+        inv_id = inv_store.save(app_con, report, log, validate(report, log), started)
+        record = inv_store.load(app_con, inv_id)
+        assert record is not None
+        return record
+    finally:
+        app_con.close()
+
+
+@app.get("/api/alerts/{alert_id}/investigations")
+def alert_investigations(alert_id: str) -> list[str]:
+    app_con = appdb.connect(get_paths().app_db)
+    try:
+        return inv_store.for_alert(app_con, alert_id)
+    finally:
+        app_con.close()
+
+
+@app.get("/api/investigations/{investigation_id}")
+def get_investigation(investigation_id: str) -> inv_store.InvestigationRecord:
+    app_con = appdb.connect(get_paths().app_db)
+    try:
+        record = inv_store.load(app_con, investigation_id)
+    finally:
+        app_con.close()
+    if record is None:
+        raise HTTPException(status_code=404, detail=f"no investigation {investigation_id}")
+    return record

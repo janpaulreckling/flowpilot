@@ -110,11 +110,11 @@ metrics:
     description: Tracked events per day, for data-quality monitoring.
     kind: event_volume
     unit: event
-    dimensions: [event_name, platform]
+    dimensions: [event_name, platform, app_version]
 
   session_volume:
     label: Sessions
     description: Sessions per day, for data-quality monitoring.
     kind: session_volume
     unit: session
-    dimensions: [platform]
+    dimensions: [platform, app_version]

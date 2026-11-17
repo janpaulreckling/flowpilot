@@ -43,9 +43,9 @@ WHERE t.plan = 'team_trial';
 
 -- Daily volumes for data-quality monitoring.
 CREATE TABLE daily_event_counts AS
-SELECT CAST(occurred_at AS DATE) AS day, event_name, platform, count(*) AS n
+SELECT CAST(occurred_at AS DATE) AS day, event_name, platform, app_version, count(*) AS n
 FROM events GROUP BY ALL;
 
 CREATE TABLE daily_sessions AS
-SELECT CAST(started_at AS DATE) AS day, platform, count(*) AS n
+SELECT CAST(started_at AS DATE) AS day, platform, app_version, count(*) AS n
 FROM sessions GROUP BY ALL;

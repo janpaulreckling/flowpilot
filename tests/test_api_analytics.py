@@ -84,3 +84,26 @@ def test_planner(client: TestClient) -> None:
     assert 4_100 <= body["units_per_arm"] <= 4_200
     assert 3.0 < body["weeks_needed"] < 3.5
     assert client.get("/api/planner", params={"baseline": 0.99, "mde_abs": 0.03}).status_code == 400
+
+
+def test_investigation_is_run_stored_and_reloaded(
+    world: World, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "flowpilot.duckdb").write_bytes(world.db_path.read_bytes())
+    monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
+    main(["monitor"])
+    client = TestClient(app)
+    alert_id = client.get("/api/alerts").json()[0]["alert"]["alert_id"]
+    record = client.post(f"/api/alerts/{alert_id}/investigate").json()
+    assert record["report"]["mode"] == "rule_based"
+    assert record["evidence"] and record["evidence"][0]["evidence_id"] == "E-1"
+    assert record["status"] in ("completed", "failed")
+    again = client.get(f"/api/investigations/{record['investigation_id']}").json()
+    assert again["report"] == record["report"]
+    assert client.get(f"/api/alerts/{alert_id}/investigations").json() == [
+        record["investigation_id"]]
+    status = {a["alert"]["alert_id"]: a["status"] for a in client.get("/api/alerts").json()}
+    assert status[alert_id] == "investigating"
+    assert client.post("/api/alerts/A-9999/investigate").status_code == 404
