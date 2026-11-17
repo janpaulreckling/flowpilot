@@ -68,3 +68,19 @@ def test_monitor_alerts_are_stored_and_keep_their_status(
         main(["monitor"])  # re-running must not reset a human review status
         again = {a["alert"]["alert_id"]: a["status"] for a in client.get("/api/alerts").json()}
         assert again[first[0]["alert"]["alert_id"]] == "reviewed"
+
+
+def test_experiment_endpoints(client: TestClient) -> None:
+    listed = client.get("/api/experiments").json()
+    assert [e["experiment_id"] for e in listed] == ["E2", "E1", "E3", "E4"]
+    detail = client.get("/api/experiments/E4").json()
+    assert detail["integrity"][0]["name"] == "Sample ratio"
+    assert client.get("/api/experiments/E9").status_code == 404
+
+
+def test_planner(client: TestClient) -> None:
+    body = client.get("/api/planner", params={"baseline": 0.38, "mde_abs": 0.03,
+                                              "weekly_units": 2500}).json()
+    assert 4_100 <= body["units_per_arm"] <= 4_200
+    assert 3.0 < body["weeks_needed"] < 3.5
+    assert client.get("/api/planner", params={"baseline": 0.99, "mde_abs": 0.03}).status_code == 400

@@ -13,6 +13,8 @@ from pydantic import BaseModel
 from flowpilot import __version__
 from flowpilot.appstate import db as appdb
 from flowpilot.appstate.alerts import StoredAlert, list_alerts
+from flowpilot.experiments.analysis import ExperimentAnalysis, analyze
+from flowpilot.experiments.stats import detectable_effect, units_per_arm
 from flowpilot.metrics.engine import (
     FunnelResult,
     Grain,
@@ -145,3 +147,65 @@ def alerts() -> list[StoredAlert]:
         return list_alerts(con)
     finally:
         con.close()
+
+
+class ExperimentSummary(BaseModel):
+    experiment_id: str
+    name: str
+    primary_metric: str
+    verdict: str
+    diff: float | None
+    started: date
+    ended: date
+
+
+class PlannerResult(BaseModel):
+    baseline: float
+    mde_abs: float
+    units_per_arm: int
+    weekly_units: int | None
+    weeks_needed: float | None
+    mde_after_weeks: dict[int, float] | None
+
+
+@app.get("/api/experiments")
+def experiments(con: Analytics) -> list[ExperimentSummary]:
+    engine = MetricEngine(con)
+    ids = [r[0] for r in con.execute(
+        "SELECT experiment_id FROM experiments ORDER BY started_at").fetchall()]
+    out = []
+    for x in ids:
+        a = analyze(engine, x)
+        out.append(ExperimentSummary(
+            experiment_id=x, name=a.name, primary_metric=a.primary_metric, verdict=a.verdict,
+            diff=a.primary.diff if a.primary else None, started=a.started, ended=a.ended))
+    return out
+
+
+@app.get("/api/experiments/{experiment_id}")
+def experiment(
+    con: Analytics, experiment_id: str, as_of: date | None = None
+) -> ExperimentAnalysis:
+    try:
+        return analyze(MetricEngine(con), experiment_id, as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.get("/api/planner")
+def planner(
+    baseline: Annotated[float, Query(gt=0, lt=1)],
+    mde_abs: Annotated[float, Query(gt=0, lt=1)],
+    weekly_units: Annotated[int | None, Query(gt=0)] = None,
+) -> PlannerResult:
+    """Units per arm for a 50/50 test (alpha 0.05, power 0.8) and the runtime it implies."""
+    if baseline + mde_abs >= 1:
+        raise HTTPException(status_code=400, detail="baseline + mde_abs must stay below 1")
+    n = units_per_arm(baseline, mde_abs)
+    per_arm_week = weekly_units / 2 if weekly_units else None
+    return PlannerResult(
+        baseline=baseline, mde_abs=mde_abs, units_per_arm=n, weekly_units=weekly_units,
+        weeks_needed=n / per_arm_week if per_arm_week else None,
+        mde_after_weeks={w: detectable_effect(baseline, int(per_arm_week * w))
+                         for w in (1, 2, 4, 8)} if per_arm_week else None,
+    )

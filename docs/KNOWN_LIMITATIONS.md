@@ -11,3 +11,10 @@ Honest list of what FlowPilot does not do well yet. Each entry says where it sho
 - **Detection is only as fast as the metric's window.** Activation needs 7 days after the last signup of a cohort week, week-4 retention 34 days; S1 could not be detected before day 14 after the release.
 - **One false decline alert** in the back-test (week-1 retention, paid social, cohort of Jul 20, z 3.5 at the segment threshold).
 - **Experiments move aggregate metrics.** E3's treatment half lowers retention enough to raise three alerts; the monitor does not yet know which cohorts are in running experiments.
+
+## Experiments
+- **Fixed horizon only (D11).** No sequential or always-valid inference; interim looks are shown but never produce a verdict.
+- **No variance reduction** (e.g. CUPED with pre-period behavior); new signups have no pre-period, so its value here would be limited.
+- **Dataset experiments use owner-level metrics.** The delta-method path for several users per workspace is validated by simulation, but none of E1–E4 uses a user-level metric yet.
+- **Planner MDE is an approximation** (variance evaluated at the baseline rate).
+- **E3's primary effect is not detectable at this sample size:** the true +1.5 pp lift in trial-to-paid comes out at +0.8 pp with a CI spanning zero; the guardrail decides that experiment.

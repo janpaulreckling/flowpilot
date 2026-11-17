@@ -29,8 +29,15 @@
 - Gates: ruff, mypy strict, 62 pytest tests.
 - API: `/api/metrics`, `/api/metrics/{metric}` (filters, group_by, grain), `/api/funnel`, `/api/alerts`; `flowpilot monitor` stores alerts in the workflow state and never overwrites a human review status; `make data` runs generate + monitor. 69 pytest tests.
 
+## 2026-11-17 — Phase 6 experimentation engine
+- Decision rules committed before analysis (`docs/EXPERIMENTS.md`); D28 Phase 5 approved.
+- Statistics core: delta-method ratio estimates, CIs, SRM chi-square, exposure balance, Holm, TOST equivalence, planner and achieved MDE.
+- Analysis with the committed check order; experiment outcomes reuse the metric layer's definitions (tested against the dashboard numbers).
+- Measured: E1 ship, E2 no meaningful effect, E3 don't ship (guardrail), E4 invalid (SRM) — all match ground truth. A/A simulations pass; a crash in interim looks was found and fixed with a regression test.
+- API: `/api/experiments`, `/api/experiments/{id}?as_of=`, `/api/planner`. 85 pytest tests.
+
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Product-owner feedback on the design prototype.
-- Product-owner approval of Phase 5.
-- Phase 6: experimentation engine (D11).
+- Product-owner approval of Phase 6.
+- Phase 7: investigation agent (tools, evidence, rule-based investigator first; LLM model choice per D14).

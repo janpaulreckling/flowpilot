@@ -201,6 +201,37 @@ class MetricEngine:
         complete = last_signup + timedelta(days=7) < self.data_end
         return FunnelResult(window_days=7, complete=complete, steps=steps)
 
+    def experiment_outcomes(
+        self, metric: str, experiment_id: str
+    ) -> list[tuple[str, int, int, date]]:
+        """Per assigned workspace: (variant, outcome sum, users, signup date).
+
+        Owner-level metrics contribute one user per workspace. Uses the same definitions as
+        `query`, so experiment results and dashboards cannot disagree on a metric.
+        """
+        d = self.definition(metric)
+        if d.kind == "trial_conversion":
+            hit, join = "t.next_plan = 'team'", "JOIN trial_outcomes t USING (workspace_id)"
+        elif d.kind == "cohort_rate":
+            hit, join = self._cohort_hit(d), ""
+        else:
+            raise MetricError(f"{metric} is not a per-signup metric")
+        rows = self.con.execute(f"""
+            SELECT a.variant, CAST(coalesce({hit}, false) AS INTEGER), 1, o.signup_date
+            FROM experiment_assignments a
+            JOIN owner_cohort o USING (workspace_id) {join}
+            WHERE a.experiment_id = ?
+            ORDER BY a.workspace_id""", [experiment_id]).fetchall()
+        return [(str(v), int(y), int(n), sd) for v, y, n, sd in rows]
+
+    @staticmethod
+    def _cohort_hit(d: MetricDefinition) -> str:
+        if d.retention_week is not None:
+            lo, hi = 7 * d.retention_week, 7 * d.retention_week + 6
+            return (f"EXISTS (SELECT 1 FROM user_active_days a WHERE a.user_id = o.user_id "
+                    f"AND a.day BETWEEN o.signup_date + {lo} AND o.signup_date + {hi})")
+        return f"coalesce(({d.numerator}), false)"
+
     # ---- SQL ----------------------------------------------------------------------------
     @staticmethod
     def _filters(filters: dict[str, list[str]], params: list[Any]) -> tuple[str, list[Any]]:
@@ -220,14 +251,7 @@ class MetricEngine:
             return f"CAST(date_trunc('week', {col}) AS DATE)" if grain == "week" else col
 
         if d.kind in ("cohort_rate", "cohort_count"):
-            if d.kind == "cohort_count":
-                hit = "1"
-            elif d.retention_week is not None:
-                lo, hi = 7 * d.retention_week, 7 * d.retention_week + 6
-                hit = (f"EXISTS (SELECT 1 FROM user_active_days a WHERE a.user_id = o.user_id "
-                       f"AND a.day BETWEEN o.signup_date + {lo} AND o.signup_date + {hi})")
-            else:
-                hit = f"coalesce(({d.numerator}), false)"
+            hit = "1" if d.kind == "cohort_count" else self._cohort_hit(d)
             where, params = self._filters(filters, [start, end])
             return f"""
                 SELECT {period('signup_date')} AS period, {seg} AS segment,

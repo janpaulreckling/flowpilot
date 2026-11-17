@@ -32,3 +32,18 @@ Units per arm for a two-sided test of two proportions at α = 0.05 and 80% power
 - A/A simulations: the 95% CI covers the true difference in about 95% of runs, for owner-level and for clustered user-level data; the naive per-user interval is shown to under-cover on clustered data.
 - SRM check flags a 52.5/47.5 split at 10,000 units and stays quiet on fair splits.
 - The four dataset experiments are scored against their ground truth verdicts (E1 ship, E2 no meaningful effect, E3 don't ship, E4 invalid). Results are reported as measured, including any mismatch.
+
+## Measured results (default dataset, seed 20261116)
+
+Reproduce with `uv run pytest tests/test_experiments.py tests/test_experiment_stats.py`.
+
+| Experiment | Primary metric | Difference (95% CI) | Guardrails | Verdict | Ground truth |
+|---|---|---|---|---|---|
+| E1 Onboarding checklist | activation | +3.4 pp [+1.6, +5.2] | week-1 retention +1.0 pp, trial to paid +1.3 pp: ok | **ship** | ship |
+| E2 Smart due-date suggestions | week-1 retention | +0.8 pp [−1.2, +2.8]; 90% CI [−0.9, +2.4] inside ±3 pp | activation ok | **no meaningful effect** | no meaningful effect |
+| E3 Aggressive upgrade prompt | trial to paid | +0.8 pp [−0.3, +1.9] | **week-2 retention −2.2 pp, Holm p = 0.018: breached** | **don't ship** | don't ship (guardrail) |
+| E4 Pricing page redesign | trial to paid | not interpreted | – | **invalid** (46.7% treatment, SRM p = 1.3e-11) | invalid (SRM) |
+
+Simulation checks: owner-level A/A coverage of the 95% CI within 93.5–96.5% over 2,000 runs; clustered user-level A/A coverage also within that band with the delta method, while the naive per-user interval covers less than 85%; SRM check flags fewer than 0.4% of fair 10,000-unit splits.
+
+Found by the tests: an interim analysis early in an experiment crashed when a guardrail had no mature cohort yet. Fixed: such guardrails are reported as "not measurable yet" and the analysis stays not decision-grade (regression test `test_interim_look_gives_no_verdict`).
