@@ -131,3 +131,7 @@ Frontend skeleton plus the Decision Center and one investigation report in the a
 ## D23 — Experiments E1–E3 are not rolled out in the data period (2026-11-17, approved)
 
 Amends the frozen catalog D19 with product-owner approval: after each experiment ends, new workspaces get the control experience; the ship / don't-ship decisions are pending at the end of the data period, which is the state the Decision Center demo starts from. This matches the generator (effects apply only to treatment workspaces inside the experiment window).
+
+## D24 — Design prototype approved (2026-11-17, approved)
+
+The analyst-memo look and the structure of the Decision Center and the investigation report are the template for all further pages. Next: Phase 5 (analytics engine), after which real numbers replace the sample content.
