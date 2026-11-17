@@ -126,15 +126,19 @@ The riskiest parts are the agent's evidence validator, the cluster-robust experi
 
 ## 11. Cut line if the schedule slips
 
-Must-haves are built in this order; if time runs short, items drop from the bottom up and move to the roadmap, never silently:
+Must-haves are built in this order. Items 1–3 and 5 are **never dropped**. If time runs short, cuts happen in this order and move to the roadmap, never silently:
 
 1. Synthetic data + ground truth, metric layer, anomaly monitor (the foundation everything else needs)
 2. Rule-based investigation with evidence tracking, Decision Center with human decisions
 3. Experiment evaluation (SRM, CI, guardrails, verdict)
 4. LLM investigation agent with the evidence validator
-5. Static demo snapshot, README, CI
-6. *First to drop:* sample-size planner as its own page (falls back to a planner section on the experiment page)
-7. *Second to drop:* filters beyond date and platform on the overview dashboard
-8. *Third to drop:* retention-cohort page (cohorts stay available as an agent tool)
+5. Static demo snapshot, README, CI — **never droppable**
 
-Should-haves (feature adoption page, experiment drafting from an investigation, agent evaluation harness, extended adversarial tests) are only started once 1–5 are done. The agent evaluation harness is the first Should-have to pull in, because it produces the measured agent results the README needs.
+Cut order:
+
+- *First:* the sample-size planner as its own page (falls back to a planner section on the experiment page)
+- *Second:* filters beyond date and platform on the overview dashboard
+- *Third:* the retention-cohort page (cohorts stay available as an investigation tool)
+- *Last resort:* the LLM agent (item 4) degrades to the clearly labeled rule-based investigation **before** item 5 is touched
+
+Should-haves (feature adoption page, experiment drafting from an investigation, agent evaluation harness, extended adversarial tests) are only started once items 1–3 and 5 are on track. The agent evaluation harness is the first Should-have to pull in, because it produces the measured agent results the README needs.

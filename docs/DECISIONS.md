@@ -103,3 +103,13 @@ The app opens on the inbox of open alerts, investigations and pending decisions,
 ## D18 — UI building blocks: shadcn/ui + Recharts (2026-11-17, approved)
 
 - **Rejected:** Tremor (recognizable default look); MUI (heavy, strong Material look).
+
+## D19 — Synthetic scenario catalog approved and frozen (2026-11-17, approved)
+
+[DATA_SCENARIOS.md](DATA_SCENARIOS.md): baseline world, scenarios S1–S5 (plus the S1b decoy), experiments E1–E4 and the adversarial content. Ground truth is fixed before the monitor and agent exist and is never tuned afterwards.
+
+## D20 — Data volume: about 2,500 new workspaces per week (2026-11-17, approved)
+
+At about 1,200 new workspaces per week the 4-week experiments would be underpowered (E1 would reach significance only about 55% of the time), so the verdict would depend on luck. Volume is raised; effects and periods stay as approved. Also corrects an inconsistency in the first draft (it implied about 9,000 workspaces).
+
+- **Rejected:** longer experiments (changes the approved periods, more overlap); larger effects (unrealistic for an onboarding test); choosing a seed that happens to give the "right" answer (manipulation).

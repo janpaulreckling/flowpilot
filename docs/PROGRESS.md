@@ -8,4 +8,5 @@
 - Repository is local only (not published). No code yet; no tests run yet.
 
 ## Next
+- Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Phase 4 foundation: repository structure, Python project and gates, synthetic data generator with ground-truth manifest, DuckDB build, core schemas, FastAPI skeleton, frontend skeleton, CI.
