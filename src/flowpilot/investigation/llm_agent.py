@@ -196,6 +196,10 @@ class LLMRun(BaseModel):
     input_tokens: int
     output_tokens: int
     cost_usd: float
+    report_attempts: int = 0
+    rejected_claims: int = 0
+    tool_errors: int = 0
+    duration_s: float = 0.0
 
 
 @dataclass
@@ -253,7 +257,7 @@ def run_agent(tools: Toolbox, alert: Alert, client: ModelClient | None = None,
     log = EvidenceLog()
     usage = _Usage()
     start = time.monotonic()
-    steps = tool_calls = attempts = 0
+    steps = tool_calls = attempts = rejected = tool_errors = 0
     row = tools.engine.con.execute(
         "SELECT value FROM dataset_info WHERE key = 'period_start'").fetchone()
     period_start = row[0] if row else "?"
@@ -267,7 +271,10 @@ def run_agent(tools: Toolbox, alert: Alert, client: ModelClient | None = None,
              report: InvestigationReport | None = None) -> tuple[LLMRun, EvidenceLog]:
         return LLMRun(status=status, failure=failure, detail=detail, report=report, model=model,
                       steps=steps, tool_calls=tool_calls, input_tokens=usage.input_tokens,
-                      output_tokens=usage.output_tokens, cost_usd=round(usage.cost, 4)), log
+                      output_tokens=usage.output_tokens, cost_usd=round(usage.cost, 4),
+                      report_attempts=attempts, rejected_claims=rejected,
+                      tool_errors=tool_errors,
+                      duration_s=round(time.monotonic() - start, 2)), log
 
     while True:
         if steps >= limits.max_steps:
@@ -305,6 +312,7 @@ def run_agent(tools: Toolbox, alert: Alert, client: ModelClient | None = None,
                 report, problems = _check_report(alert, args, log)
                 if report is not None and not problems:
                     return done("completed", report=report)
+                rejected += len(problems)
                 if attempts >= limits.max_report_attempts:
                     return done("failed", "invalid_report", "; ".join(problems[:5]))
                 results.append({"type": "tool_result", "tool_use_id": block.id, "is_error": True,
@@ -316,17 +324,20 @@ def run_agent(tools: Toolbox, alert: Alert, client: ModelClient | None = None,
             if tool_calls > limits.max_tool_calls:
                 return done("failed", "tool_call_limit")
             if name not in READ_TOOLS:
+                tool_errors += 1
                 results.append({"type": "tool_result", "tool_use_id": block.id, "is_error": True,
                                 "content": f"Unknown tool {name!r}. Only read-only tools exist."})
                 continue
             try:
                 call_args = _call_args(name, args)
             except (ValueError, KeyError, TypeError) as exc:
+                tool_errors += 1
                 results.append({"type": "tool_result", "tool_use_id": block.id, "is_error": True,
                                 "content": f"Invalid input: {exc}"})
                 continue
             ev = log.record(name, call_args, getattr(tools, name))
             if ev.output is None:
+                tool_errors += 1
                 results.append({"type": "tool_result", "tool_use_id": block.id, "is_error": True,
                                 "content": f"{ev.evidence_id} failed: {ev.error}"})
             else:
