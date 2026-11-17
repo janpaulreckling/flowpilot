@@ -1,7 +1,8 @@
 .PHONY: data check serve ui ui-check
 
-data:      ## simulate the synthetic dataset and build the analytics store
+data:      ## simulate the synthetic dataset, build the analytics store, run the monitor
 	uv run flowpilot generate
+	uv run flowpilot monitor
 
 check:     ## lint, type-check and test
 	uv run ruff check .

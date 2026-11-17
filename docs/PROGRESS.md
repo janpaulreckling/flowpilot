@@ -27,8 +27,10 @@
 - Independent pure-Python reference implementation from the raw Parquet files; mutation checks confirmed the tests catch a wrong activation window and a wrong retention window.
 - Anomaly monitor per `docs/MONITORING.md` (parameters committed before the first run); evaluation in a separate module that alone reads the ground truth. Measured: S1, S2, S5 detected; 1 false decline alert; 58 improvement notices (see MONITORING.md).
 - Gates: ruff, mypy strict, 62 pytest tests.
+- API: `/api/metrics`, `/api/metrics/{metric}` (filters, group_by, grain), `/api/funnel`, `/api/alerts`; `flowpilot monitor` stores alerts in the workflow state and never overwrites a human review status; `make data` runs generate + monitor. 69 pytest tests.
 
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Product-owner feedback on the design prototype.
-- Phase 5 remainder: API endpoints for metrics, funnel and alerts; alerts persisted to app state.
+- Product-owner approval of Phase 5.
+- Phase 6: experimentation engine (D11).

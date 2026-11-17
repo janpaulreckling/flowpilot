@@ -11,16 +11,10 @@ from pathlib import Path
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS alerts (
     alert_id      TEXT PRIMARY KEY,
-    metric        TEXT NOT NULL,
-    period_start  TEXT NOT NULL,
-    period_end    TEXT NOT NULL,
-    segment       TEXT,
-    observed      REAL NOT NULL,
-    expected      REAL NOT NULL,
-    lower_bound   REAL NOT NULL,
-    upper_bound   REAL NOT NULL,
+    body_json     TEXT NOT NULL,  -- the monitor's Alert record (flowpilot.monitor.detect.Alert)
+    detected_on   TEXT NOT NULL,
     status        TEXT NOT NULL CHECK (status IN ('open', 'investigating', 'reviewed', 'closed')),
-    created_at    TEXT NOT NULL
+    updated_at    TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS investigations (

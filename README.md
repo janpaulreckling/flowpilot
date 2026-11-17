@@ -6,14 +6,14 @@ All data is **synthetic**: a simulated team task-management SaaS called *Tasklan
 
 ## Status
 
-Foundation in place: reproducible data generator, DuckDB analytics store, API skeleton, tests and CI. Metrics, monitoring, experiments, investigations and the UI follow. Plans and decisions live in [docs/](docs/).
+In place: reproducible data generator, DuckDB analytics store, metric layer with an independent reference test, anomaly monitor with a measured back-test, API, design prototype, tests and CI. Experiments, investigations and the full UI follow. Plans and decisions live in [docs/](docs/).
 
 ## Quickstart
 
 ```bash
 uv sync
-make data    # simulate ~6M events and build data/flowpilot.duckdb (about 10 s)
+make data    # simulate ~6M events, build data/flowpilot.duckdb, run the anomaly monitor
 make check   # ruff, mypy, pytest
-make serve   # API on http://localhost:8000/api/dataset
+make serve   # API on http://localhost:8000 (e.g. /api/alerts, /api/metrics/activation_rate?start=2026-09-07&end=2026-11-16)
 make ui      # UI on http://localhost:5173 (design prototype: Decision Center + one investigation)
 ```
