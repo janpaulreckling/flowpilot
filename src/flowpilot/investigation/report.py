@@ -74,7 +74,14 @@ _VERSION = re.compile(
     r"\b(?:version|v|ios|android|release)\s*(\d+\.\d+(?:\.\d+)?)\b", re.IGNORECASE)
 
 
-def _numbers(text: str) -> list[tuple[float, str | None, str]]:
+_DIRECTION = re.compile(
+    r"\b(rose|increased|grew|climbed|improved|fell|dropped|declined|decreased|shrank)\s+by\s*$",
+    re.IGNORECASE)
+_UP = {"rose", "increased", "grew", "climbed", "improved"}
+
+
+def _numbers(text: str) -> list[tuple[float, str | None, str, str | None]]:
+    """(value, unit, raw text, direction word) for every measurement in the text."""
     version_spans = [m.span(1) for m in _VERSION.finditer(text)]
     out = []
     for m in _NUMBER.finditer(text):
@@ -82,7 +89,8 @@ def _numbers(text: str) -> list[tuple[float, str | None, str]]:
         if unit is None and any(a <= m.start(1) < b for a, b in version_spans):
             continue
         value = float(raw.replace(",", "").replace("\u2212", "-"))
-        out.append((value, unit, raw))
+        d = _DIRECTION.search(text[max(0, m.start(1) - 24):m.start(1)])
+        out.append((value, unit, raw, d.group(1).lower() if d else None))
     return out
 
 
@@ -94,8 +102,8 @@ def _matches(shown: float, unit: str | None, raw: str, fact: float) -> bool:
     """Does the displayed number equal the fact, rounded the way it is displayed?
 
     Rates are stored as fractions, so "34.4%" or "-2.8 pp" also match fact x 100. A number
-    written with an explicit sign must have the fact's sign; an unsigned one ("fell by 2.8 pp")
-    is compared by size.
+    written with an explicit sign must have the fact's sign; an unsigned one is compared by
+    size (its direction is checked separately).
     """
     signed = raw[0] in "+-\u2212"
     tol = 0.5 * 10 ** (-_decimals(raw)) + 1e-9
@@ -109,41 +117,61 @@ def _matches(shown: float, unit: str | None, raw: str, fact: float) -> bool:
 
 
 def validate(report: InvestigationReport, log: EvidenceLog) -> list[ValidationIssue]:
-    """Every cited fact must exist, and every number in a claim must equal a cited fact.
+    """Bind every number in a claim to exactly one cited fact, in order of appearance.
 
-    Calendar dates ("October 26") name periods and are skipped; every other number, including
-    counts such as "8 weeks", must match a cited fact.
+    - each citation must point at a recorded fact;
+    - the claim must cite as many facts as it shows numbers, in the same order, and each
+      number must equal its fact as displayed (so swapped values fail);
+    - "rose by" / "fell by" must agree with the sign of the fact;
+    - calendar dates are skipped, and quoted text only when it is a known category name.
     """
     issues: list[ValidationIssue] = []
     for claim in report.claims():
         facts: list[float] = []
+        broken = False
         for c in claim.citations:
             ev = log.get(c.evidence_id)
             if ev is None or ev.output is None:
                 issues.append(ValidationIssue(claim=claim.text,
                                               problem=f"unknown evidence {c.evidence_id}"))
+                broken = True
                 continue
             if c.fact not in ev.output.facts:
                 issues.append(ValidationIssue(claim=claim.text,
                                               problem=f"{c.evidence_id} has no fact {c.fact!r}"))
+                broken = True
                 continue
             facts.append(ev.output.facts[c.fact])
-        for value, unit, raw in _numbers(_strip_dates(claim.text)):
-            if not any(_matches(value, unit, raw, f) for f in facts):
+        numbers = _numbers(_strip_dates(claim.text))
+        if broken:
+            continue
+        if len(numbers) != len(facts):
+            issues.append(ValidationIssue(
+                claim=claim.text,
+                problem=f"shows {len(numbers)} numbers but cites {len(facts)} facts; cite each "
+                        "number exactly once, in order of appearance"))
+            numbers = numbers[:len(facts)]
+        for (value, unit, raw, direction), fact in zip(numbers, facts, strict=False):
+            if not _matches(value, unit, raw, fact):
                 issues.append(ValidationIssue(
-                    claim=claim.text, problem=f"number {raw}{unit or ''} matches no cited fact"))
+                    claim=claim.text,
+                    problem=f"number {raw}{unit or ''} does not match its cited fact ({fact:g})"))
+            elif direction and fact != 0 and (direction in _UP) != (fact > 0):
+                issues.append(ValidationIssue(
+                    claim=claim.text,
+                    problem=f"'{direction} by {raw}' contradicts the sign of its fact ({fact:g})"))
     return issues
 
 
 _MONTHS = ("January|February|March|April|May|June|July|August|September|October|November|"
            "December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec")
 _DATE = re.compile(rf"\b(?:{_MONTHS})\.?\s+\d{{1,2}}(?:,\s*\d{{4}})?\b|\b\d{{4}}-\d{{2}}-\d{{2}}\b")
-
-
-_QUOTED = re.compile(r"'[^']*'")
+_QUOTED = re.compile(r"'([^']*)'")
+# Category names that may appear in quotes; any other quoted text is checked like prose.
+QUOTED_NAMES = {"1-10", "11-50", "51-200", "project created", "invite sent", "teammate joined"}
 
 
 def _strip_dates(text: str) -> str:
-    """Calendar dates name periods and quoted terms name categories (a step, a company size
-    such as '1-10'); neither is a measurement."""
-    return _QUOTED.sub("", _DATE.sub("", text))
+    """Remove calendar dates (they name periods) and quoted category names."""
+    text = _DATE.sub("", text)
+    return _QUOTED.sub(lambda m: "" if m.group(1) in QUOTED_NAMES else m.group(1), text)

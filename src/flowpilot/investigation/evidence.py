@@ -41,8 +41,11 @@ class EvidenceLog:
         error: str | None = None
         try:
             output = fn(**args)
-        except Exception as exc:  # noqa: BLE001 - a failing tool becomes a recorded error
+        except (ValueError, KeyError, TypeError) as exc:
+            # Our own validation messages (unknown metric, bad dimension, empty window).
             error = f"{type(exc).__name__}: {exc}"
+        except Exception as exc:  # noqa: BLE001 - never pass engine internals (SQL) along
+            error = f"internal error in {tool} ({type(exc).__name__})"
         payload = output.model_dump_json() if output else None
         ev = Evidence(
             evidence_id=f"E-{len(self.items) + 1}",

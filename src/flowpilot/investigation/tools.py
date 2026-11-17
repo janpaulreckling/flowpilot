@@ -225,8 +225,12 @@ class Toolbox:
             if a.primary:
                 facts = {"primary_diff_pp": a.primary.diff * 100,
                          "primary_p": a.primary.p_two_sided}
-            return ToolOutput(summary=f"{experiment_id}: {a.verdict}",
-                              data=a.model_dump(mode="json"), facts=facts)
+            # Structured fields only: no free text (name, hypothesis) reaches the model.
+            data = a.model_dump(mode="json", include={
+                "experiment_id", "primary_metric", "mde_abs", "planned_units_per_arm",
+                "started", "ended", "decision_grade", "integrity", "primary", "guardrails",
+                "verdict"})
+            return ToolOutput(summary=f"{experiment_id}: {a.verdict}", data=data, facts=facts)
         if not (metric and start and end):
             raise ValueError("give experiment_id, or metric with start and end")
         rows = con.execute(

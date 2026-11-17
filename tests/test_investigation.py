@@ -91,8 +91,9 @@ def _report(claim: Claim) -> InvestigationReport:
 def test_validator_accepts_correctly_cited_numbers() -> None:
     log = _log_with({"rate": 0.344, "diff_pp": -2.79, "n": 5369})
     claim = Claim(text="Activation was 34.4% (−2.8 pp) for 5,369 signups on iOS 4.12 in "
-                       "week-2 since October 26.",
-                  citations=[Citation(evidence_id="E-1", fact=f) for f in ("rate", "diff_pp", "n")])
+                       "week-2 since October 26; it fell by 2.8 pp at the 'invite sent' step.",
+                  citations=[Citation(evidence_id="E-1", fact=f)
+                             for f in ("rate", "diff_pp", "n", "diff_pp")])
     assert validate(_report(claim), log) == []
 
 
@@ -106,11 +107,17 @@ def test_validator_accepts_correctly_cited_numbers() -> None:
     "Events per session fell from 4.1 to 2.3 on Android 7.3.",
     "p = 0.018 for the guardrail.",
     "We saw 2031 new signups that week.",
+    # Regression (review finding): wrong direction, swapped values, numbers hidden in quotes.
+    "Activation rose by 2.8 pp.",
+    "Activation was 37.2% now against 34.4% before.",
+    "Activation fell by '9.9 pp' this time.",
 ])
 def test_validator_rejects_numbers_without_matching_evidence(text: str) -> None:
-    log = _log_with({"rate": 0.344, "diff_pp": -2.79})
-    claim = Claim(text=text, citations=[Citation(evidence_id="E-1", fact="rate"),
-                                        Citation(evidence_id="E-1", fact="diff_pp")])
+    log = _log_with({"rate": 0.344, "diff_pp": -2.79, "baseline": 0.372})
+    facts = {"Activation was 37.2% now against 34.4% before.": ["rate", "baseline"],
+             "Activation rose by 2.8 pp.": ["diff_pp"],
+             "Activation fell by '9.9 pp' this time.": ["diff_pp"]}.get(text, ["rate", "diff_pp"])
+    claim = Claim(text=text, citations=[Citation(evidence_id="E-1", fact=f) for f in facts])
     assert validate(_report(claim), log)
 
 

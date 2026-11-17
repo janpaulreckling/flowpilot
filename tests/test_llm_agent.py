@@ -134,7 +134,7 @@ def test_hallucinated_number_is_sent_back_and_corrected(setup: tuple[Toolbox, Al
     run, _ = run_agent(tools, alert, client=model)
     assert run.status == "completed"
     feedback = model.calls[2]["messages"][-1]["content"][0]
-    assert feedback["is_error"] and "matches no cited fact" in feedback["content"]
+    assert feedback["is_error"] and "does not match its cited fact" in feedback["content"]
 
 
 def test_persistent_hallucination_fails_the_run(setup: tuple[Toolbox, Alert]) -> None:
@@ -213,3 +213,19 @@ def test_tool_surface_is_read_only() -> None:
     names = {t["name"] for t in TOOLS}
     assert names - {"submit_report"} == READ_TOOLS
     assert not any(w in n for n in names for w in ("write", "update", "delete", "sql", "approve"))
+
+
+def test_oversized_tool_result_keeps_facts_but_drops_data(setup: tuple[Toolbox, Alert]) -> None:
+    tools, alert = setup
+    big = use("query_metric", metric="event_volume", start="2026-05-04", end="2026-11-16",
+              grain="day", group_by="event_name")
+    model = Scripted([big, compare(alert), submit_from_facts()])
+    run_agent(tools, alert, client=model)
+    sent = model.calls[1]["messages"][-1]["content"][0]["content"]
+    assert len(sent) <= 20_000
+
+
+def test_experiment_tool_sends_no_free_text(setup: tuple[Toolbox, Alert]) -> None:
+    tools, _ = setup
+    out = tools.experiment_result(experiment_id="E3")
+    assert "hypothesis" not in out.data and "name" not in out.data

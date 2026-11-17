@@ -29,6 +29,7 @@ from flowpilot.investigation.tools import Toolbox
 from flowpilot.monitor.detect import Alert
 
 DEFAULT_MODEL = "claude-opus-5-5"
+MAX_TOOL_RESULT_CHARS = 20_000
 # USD per million tokens (input, output). Cache reads bill at 10% and cache writes at 125% of
 # the input price.
 PRICES = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0),
@@ -58,7 +59,8 @@ class AnthropicClient:
     def __init__(self) -> None:
         import anthropic
 
-        self._client = anthropic.Anthropic()
+        # Bounded per request; the run's own wall-clock limit applies on top.
+        self._client = anthropic.Anthropic(timeout=60.0, max_retries=2)
 
     def create(self, **kwargs: Any) -> Any:
         # Server-side refusal fallback, as recommended for current models.
@@ -328,9 +330,21 @@ def run_agent(tools: Toolbox, alert: Alert, client: ModelClient | None = None,
                 results.append({"type": "tool_result", "tool_use_id": block.id, "is_error": True,
                                 "content": f"{ev.evidence_id} failed: {ev.error}"})
             else:
+                payload = json.dumps({"evidence_id": ev.evidence_id, **ev.output.model_dump()},
+                                     default=str)
+                if len(payload) > MAX_TOOL_RESULT_CHARS:
+                    payload = json.dumps({
+                        "evidence_id": ev.evidence_id, "summary": ev.output.summary,
+                        "facts": ev.output.facts,
+                        "note": f"data omitted: {len(payload):,} characters exceed the "
+                                f"{MAX_TOOL_RESULT_CHARS:,} limit; narrow the period or grouping"})
+                    if len(payload) > MAX_TOOL_RESULT_CHARS:
+                        results.append({"type": "tool_result", "tool_use_id": block.id,
+                                        "is_error": True, "content":
+                                        "Result too large; narrow the period or grouping."})
+                        continue
                 results.append({"type": "tool_result", "tool_use_id": block.id,
-                                "content": json.dumps({"evidence_id": ev.evidence_id,
-                                                       **ev.output.model_dump()}, default=str)})
+                                "content": payload})
         messages.append({"role": "user", "content": results})
 
 
