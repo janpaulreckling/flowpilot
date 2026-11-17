@@ -135,3 +135,15 @@ Amends the frozen catalog D19 with product-owner approval: after each experiment
 ## D24 — Design prototype approved (2026-11-17, approved)
 
 The analyst-memo look and the structure of the Decision Center and the investigation report are the template for all further pages. Next: Phase 5 (analytics engine), after which real numbers replace the sample content.
+
+## D25 — "Active" means a core action (2026-11-17, approved)
+
+Task created, task completed, comment added, timeline viewed or integration used. Opening the app alone does not count.
+
+- **Rejected:** any session counts (robust to tracking gaps, but counts empty app opens as activity).
+
+## D26 — Retention week N is bracketed (2026-11-17, approved)
+
+Active on at least one day in days 7N to 7N+6 after signup.
+
+- **Rejected:** unbounded ("week N or later"; always higher and hides when users drop off).
