@@ -8,6 +8,7 @@ import {
   Inbox,
   LayoutDashboard,
   Monitor,
+  Newspaper,
   Moon,
   Sun,
 } from 'lucide-react'
@@ -19,6 +20,7 @@ import { applyTheme, readPreference, savePreference, type ThemePreference } from
 
 export const NAV = [
   { to: '/', label: 'Decision Center', icon: Inbox },
+  { to: '/case-study', label: 'Case study', icon: Newspaper },
   { to: '/overview', label: 'Overview', icon: LayoutDashboard },
   { to: '/funnels', label: 'Funnels & Retention', icon: Filter },
   { to: '/experiments', label: 'Experiments', icon: FlaskConical },

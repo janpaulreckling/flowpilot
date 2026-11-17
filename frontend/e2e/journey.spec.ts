@@ -61,3 +61,14 @@ test('overview, funnels and the data page load from the snapshot', async ({ page
   await expect(page.getByText(/Activation drop localized to iOS 4\.12/)).toBeVisible()
   expect(failures).toEqual([])
 })
+
+test('case study reads on its own and links into the demo', async ({ page }) => {
+  const failures = trackFailures(page)
+  await page.goto('./case-study')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Why did activation drop?')
+  await expect(page.getByText(/moved by −22\.4 pp/)).toBeVisible()
+  await expect(page.getByText(/not yet been evaluated against a real model/)).toBeVisible()
+  await page.getByRole('link', { name: 'Open this case in the demo' }).click()
+  await expect(page.getByRole('note')).toContainText('Step 2 of 3')
+  expect(failures).toEqual([])
+})

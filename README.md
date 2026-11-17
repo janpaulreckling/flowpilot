@@ -8,7 +8,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 [![Live demo](https://img.shields.io/badge/live%20demo-GitHub%20Pages-2a78d6)](https://janpaulreckling.github.io/flowpilot/)
 
-**[Open the live demo](https://janpaulreckling.github.io/flowpilot/)**: a static snapshot of a real run. No login needed.
+**[Open the live demo](https://janpaulreckling.github.io/flowpilot/)**: a static snapshot of a real run. No login needed. Short on time? Read the **[case study](https://janpaulreckling.github.io/flowpilot/case-study)** (5 minutes).
 
 ![Decision Center: incidents ordered by strength, the iOS 4.12 activation drop first](docs/img/decision-center.png)
 

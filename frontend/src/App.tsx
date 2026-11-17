@@ -4,6 +4,7 @@ import { AppShell } from '@/components/AppShell'
 import { Empty } from '@/components/States'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AlertPage } from '@/pages/AlertPage'
+import { CaseStudyPage } from '@/pages/CaseStudy'
 import { DataPage, InvestigationsPage, MetricsPage } from '@/pages/Catalog'
 import { DecisionCenter } from '@/pages/DecisionCenter'
 import { ExperimentPage, ExperimentsPage } from '@/pages/Experiments'
@@ -18,6 +19,7 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<DecisionCenter />} />
         <Route path="/alerts/:alertId" element={<AlertPage />} />
+        <Route path="/case-study" element={<CaseStudyPage />} />
         <Route path="/overview" element={<OverviewPage />} />
         <Route path="/funnels" element={<FunnelsPage />} />
         <Route path="/experiments" element={<ExperimentsPage />} />
