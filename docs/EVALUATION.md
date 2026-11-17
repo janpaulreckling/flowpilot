@@ -57,7 +57,7 @@ In addition, every report must pass the evidence validator, or it does not count
 
 Why S1 alerts failed (one alert can fail several checks):
 - **"Calendar ruled out" (4 alerts):** the rule needs every other segment to move by less than 1 pp. On new random draws the other segments often moved a little more, so the hypothesis stayed "inconclusive". The threshold is too strict for normal noise.
-- **Localization (2 alerts), funnel step and fix recommendation (2 alerts each):** where the iOS window mixes pre- and post-release weeks, the segment and step tests did not reach their significance thresholds, so the report did not name iOS 4.12 or the step.
+- **Localization (2 alerts), funnel step and fix recommendation (2 alerts each):** the segment and step tests did not reach their significance thresholds, so the report did not name iOS 4.12 or the step. The likely cause, not yet verified case by case, is alert windows that mix pre- and post-release weeks.
 - **E3 (1 alert):** the experiment's expected contribution stayed below the 25% bar, so it was listed as minor.
 
 These rules are **not** changed in response, because that would repeat the overfitting this evaluation is designed to expose. They are listed in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) and the roadmap.
