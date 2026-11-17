@@ -13,6 +13,8 @@ const alert: StoredAlert = {
     severity: 'alert', first_period_start: '2026-10-12', last_period_end: '2026-11-09',
     first_detected_on: '2026-11-16', observed: 0.355, expected: 0.377, max_abs_z: 3.5,
     windows: ['4w'], detections: 1, data_quality_suspect: false,
+    peak_window: '1w', peak_period_start: '2026-10-26', peak_period_end: '2026-11-02',
+    peak_observed: 0.231, peak_expected: 0.366, peak_z: 7.2,
   },
 }
 const record: InvestigationRecord = {
@@ -35,6 +37,7 @@ const record: InvestigationRecord = {
 const routes: Record<string, unknown> = {
   '/api/dataset': { synthetic: true, seed: 1, scale: 1, period_start: '2026-05-04', period_end_exclusive: '2026-11-16', row_counts: { workspaces: 10, events: 100 } },
   '/api/alerts': [alert],
+  '/api/incidents': [{ incident_id: 'I-0067', kind: 'metric', metric: 'activation_rate', lead: alert, related: [], severity: 7.2, status: 'investigating' }],
   '/api/experiments': [{ experiment_id: 'E4', name: 'Pricing page redesign', primary_metric: 'trial_to_paid', verdict: 'invalid', diff: 0.003, started: '2026-10-05', ended: '2026-11-02' }],
   '/api/decisions': [],
   '/api/capabilities': { llm_enabled: false, model: null },
@@ -76,17 +79,18 @@ describe('Decision Center', () => {
     renderAt('/')
     expect(await screen.findByText('Read the investigation and decide')).toBeInTheDocument()
     expect(screen.getAllByText('Activation rate fell').length).toBeGreaterThan(0)
+    expect(screen.getByText(/1-week window, signups Oct 26 – Nov 1: 36.6% → 23.1%/)).toBeInTheDocument()
     expect(await screen.findByText('Invalid test')).toBeInTheDocument()
     expect(screen.getByText('No decisions recorded yet')).toBeInTheDocument()
     expect(screen.getByText(/All data is synthetic/)).toBeInTheDocument()
   })
 
   it('shows an error state when the API fails', async () => {
-    routes['/api/alerts'] = undefined
-    delete routes['/api/alerts']
+    const saved = routes['/api/incidents']
+    delete routes['/api/incidents']
     renderAt('/')
     expect(await screen.findByText('Could not load this data')).toBeInTheDocument()
-    routes['/api/alerts'] = [alert]
+    routes['/api/incidents'] = saved
   })
 })
 

@@ -82,3 +82,11 @@ export function longDate(iso: string): string {
     timeZone: 'UTC',
   })
 }
+
+/** The window that triggered the alert, e.g. "1-week window, signups Oct 26 – Nov 1: 36.6% → 23.1% (−13.5 pp)". */
+export function peakChange(a: Alert): string | null {
+  if (!a.peak_window || !a.peak_period_start || !a.peak_period_end) return null
+  const kind = a.peak_window === '1w' ? '1-week window' : a.peak_window === '4w' ? '4-week window' : 'day'
+  if (a.kind !== 'rate') return null
+  return `${kind}, signups ${periodText(a.peak_period_start, a.peak_period_end)}: ${formatRate(a.peak_expected)} → ${formatRate(a.peak_observed)} (${formatPp(a.peak_observed - a.peak_expected)})`
+}

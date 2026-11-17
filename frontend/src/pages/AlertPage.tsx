@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { api, DEMO, type Alert, type InvestigationRecord } from '@/lib/api'
 import { addDays } from '@/lib/format'
-import { alertChange, alertHeadline, metricLabel, periodText, segmentText, shortDate, valueLabel } from '@/lib/labels'
+import { alertChange, alertHeadline, metricLabel, peakChange, periodText, segmentText, shortDate, valueLabel } from '@/lib/labels'
 
 const REC_LABEL: Record<string, string> = {
   fix_and_verify: 'Fix and verify',
@@ -209,7 +209,8 @@ export function AlertPage() {
           </span>
         </div>
         <h1 className="font-serif text-2xl font-semibold tracking-tight sm:text-3xl">{alertHeadline(a)}</h1>
-        <p className="tabular-nums">{alertChange(a)}</p>
+        <p className="tabular-nums">{peakChange(a) ?? alertChange(a)}</p>
+        {peakChange(a) && <p className="text-sm tabular-nums text-muted-foreground">Whole alert window: {alertChange(a)}</p>}
         <p className="text-sm text-muted-foreground">Cohorts {periodText(a.first_period_start, a.last_period_end)}</p>
       </header>
 

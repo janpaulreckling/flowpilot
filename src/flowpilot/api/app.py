@@ -18,6 +18,8 @@ from flowpilot.appstate import db as appdb
 from flowpilot.appstate import decisions as dec_store
 from flowpilot.appstate import investigations as inv_store
 from flowpilot.appstate.alerts import StoredAlert, list_alerts
+from flowpilot.appstate.incidents import Incident
+from flowpilot.appstate.incidents import build as build_incidents
 from flowpilot.experiments.analysis import ExperimentAnalysis, analyze
 from flowpilot.experiments.stats import detectable_effect, units_per_arm
 from flowpilot.investigation.llm_agent import DEFAULT_MODEL, llm_enabled, run_agent
@@ -168,6 +170,16 @@ def funnel(
         return MetricEngine(con).funnel(start, end, parse_filters(filter), group_by)
     except MetricError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/incidents")
+def incidents() -> list[Incident]:
+    """Decline alerts grouped into incidents, strongest first; data quality last."""
+    con = appdb.connect(get_paths().app_db)
+    try:
+        return build_incidents(list_alerts(con))
+    finally:
+        con.close()
 
 
 @app.get("/api/alerts")

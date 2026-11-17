@@ -28,6 +28,22 @@ export interface Alert {
   windows: string[]
   detections: number
   data_quality_suspect: boolean
+  peak_window: string
+  peak_period_start: string | null
+  peak_period_end: string | null
+  peak_observed: number
+  peak_expected: number
+  peak_z: number
+}
+
+export interface Incident {
+  incident_id: string
+  kind: 'metric' | 'data_quality'
+  metric: string
+  lead: StoredAlert
+  related: StoredAlert[]
+  severity: number
+  status: StoredAlert['status']
 }
 
 export interface StoredAlert {
@@ -244,6 +260,7 @@ export const api = {
   dataset: () => fetchJson<DatasetInfo>('/api/dataset'),
   capabilities: () => fetchJson<Capabilities>('/api/capabilities'),
   alerts: () => fetchJson<StoredAlert[]>('/api/alerts'),
+  incidents: () => fetchJson<Incident[]>('/api/incidents'),
   alertInvestigations: (id: string) => fetchJson<string[]>(`/api/alerts/${enc(id)}/investigations`),
   investigation: (id: string) => fetchJson<InvestigationRecord>(`/api/investigations/${enc(id)}`),
   investigate: (id: string, mode: 'rule_based' | 'llm') =>

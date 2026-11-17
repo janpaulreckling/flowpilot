@@ -195,3 +195,26 @@ def test_huge_ranges_are_clamped_to_the_data(client: TestClient,
                                              "end": "9999-12-31"}).status_code == 200
     assert client.get("/api/metrics/signups", params={"start": "1990-01-01",
                                                       "end": "1991-01-01"}).status_code == 400
+
+
+def test_incidents_group_related_alerts(full_world: Path, tmp_path: Path,
+                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "flowpilot.duckdb").write_bytes(full_world.read_bytes())
+    monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
+    main(["monitor"])
+    incidents = TestClient(app).get("/api/incidents").json()
+    first = incidents[0]
+    # The iOS 4.12 activation story leads, with its sibling alerts folded in.
+    assert first["metric"] == "activation_rate"
+    assert first["lead"]["alert"]["segment"] == {"signup_platform": "ios"}
+    assert first["lead"]["alert"]["peak_window"] == "1w"
+    assert first["lead"]["alert"]["peak_observed"] - first["lead"]["alert"]["peak_expected"] < -0.1
+    assert len(first["related"]) >= 1
+    assert incidents[-1]["kind"] == "data_quality"
+    lead_id = first["lead"]["alert"]["alert_id"]
+    TestClient(app, headers=WRITE).post(f"/api/alerts/{lead_id}/investigate")
+    again = TestClient(app).get("/api/incidents").json()[0]
+    assert again["status"] == "investigating"  # follows the lead, not the related alerts
+    assert all(i["kind"] == "metric" for i in incidents[:-1])

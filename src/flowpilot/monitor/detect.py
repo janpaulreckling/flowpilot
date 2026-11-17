@@ -75,6 +75,13 @@ class Alert(BaseModel):
     windows: list[str]
     detections: int
     data_quality_suspect: bool = False
+    # The strongest single detection: the window that actually triggered the alert.
+    peak_window: str = ""
+    peak_period_start: date | None = None
+    peak_period_end: date | None = None
+    peak_observed: float = 0.0
+    peak_expected: float = 0.0
+    peak_z: float = 0.0
 
 
 class MonitorRun(BaseModel):
@@ -231,6 +238,7 @@ def _merge(detections: list[Detection], engine: MetricEngine) -> list[Alert]:
         lag = engine.definition(metric).lag_days if kind == "rate" else 0
         for episode in episodes:
             first = min(episode, key=lambda x: x.period_end)
+            peak = max(episode, key=lambda x: abs(x.z))
             alerts.append(Alert(
                 alert_id="", metric=metric, kind=first.kind, segment=dict(seg),
                 direction=first.direction,
@@ -241,6 +249,9 @@ def _merge(detections: list[Detection], engine: MetricEngine) -> list[Alert]:
                 observed=first.observed, expected=first.expected,
                 max_abs_z=max(abs(x.z) for x in episode),
                 windows=sorted({x.window for x in episode}), detections=len(episode),
+                peak_window=peak.window, peak_period_start=peak.period_start,
+                peak_period_end=peak.period_end, peak_observed=peak.observed,
+                peak_expected=peak.expected, peak_z=peak.z,
             ))
     alerts.sort(key=lambda a: (a.first_detected_on, a.metric, str(a.segment)))
     for a in alerts:

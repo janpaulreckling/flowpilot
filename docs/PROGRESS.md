@@ -53,8 +53,12 @@
 - Frontend rebuilt on the API (prototype content removed): Decision Center (open alerts, ready investigations, experiments awaiting a decision, decisions, collapsed improvement notices), alert page with trend, investigation report with evidence panel and decision form, rule-based and AI buttons (AI disabled without a key), experiment list and detail (verdict, rationale, integrity, interval plot vs MDE, guardrails, decision), Overview (KPI tiles, platform filter, trends), Funnels & Retention, Metrics catalog, About the data with scenario reveal. Static-demo mode prepared in the API client (VITE_DEMO).
 - Verified: tsc, oxlint, 7 Vitest tests, production build; browser check of every page at desktop and phone width, light and dark, no horizontal overflow, no console errors on the checked pages. Backend 112 pytest tests.
 
+## 2026-11-17 — Phase 9: independent review and fixes (D33)
+- Three independent reviews (statistics, architecture/security, interview lens).
+- Fixed: evidence validator gaps (bare decimals, years, direction, swapped values, quoted numbers), agent safeguards (size cap, no free text, masked errors, timeout), API hardening (investigation reservation with 409, write guard against cross-site requests, ranges clamped, stable alert ids), method v2 with before/after results (METHOD_V2.md), incidents in the Decision Center (F20).
+- 126 pytest tests, 7 Vitest tests.
+
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Product-owner feedback on the design prototype.
-- Product-owner design and usability feedback on the full UI.
-- Phase 9: independent quality review. Phase 10: static demo snapshot, Playwright journey, README, publishing (needs approval).
+- Phase 10: README, doc clean-up for publishing, static demo snapshot, Playwright journey, history clean-up, publishing (needs approval).
