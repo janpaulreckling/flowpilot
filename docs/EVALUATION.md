@@ -44,4 +44,24 @@ In addition, every report must pass the evidence validator, or it does not count
 
 ## Results
 
-Filled in by `scripts/evaluate_investigators.py`, in a later commit than this protocol.
+### Rule-based investigator (seeds 101, 202, 303; `eval/rule_based.json`)
+
+**9 of 16 decline alerts pass**, against 6 of 7 on the default seed it was revised on. The gap is the expected effect of revising rules on one dataset.
+
+| Scenario | Passed |
+|---|---|
+| S1 iOS activation regression (including partial and knock-on alerts) | 2 of 8 |
+| S2 paid-social retention | 3 of 3 |
+| S5 Android tracking gap | 3 of 3 |
+| E3 experiment effect (partial) | 1 of 2 |
+
+Why S1 alerts failed (one alert can fail several checks):
+- **"Calendar ruled out" (4 alerts):** the rule needs every other segment to move by less than 1 pp. On new random draws the other segments often moved a little more, so the hypothesis stayed "inconclusive". The threshold is too strict for normal noise.
+- **Localization (2 alerts), funnel step and fix recommendation (2 alerts each):** where the iOS window mixes pre- and post-release weeks, the segment and step tests did not reach their significance thresholds, so the report did not name iOS 4.12 or the step.
+- **E3 (1 alert):** the experiment's expected contribution stayed below the 25% bar, so it was listed as minor.
+
+These rules are **not** changed in response, because that would repeat the overfitting this evaluation is designed to expose. They are listed in [KNOWN_LIMITATIONS.md](KNOWN_LIMITATIONS.md) and the roadmap.
+
+### LLM agent
+
+Not run yet: real runs need an API key and a spend limit. The agent will be scored on the same 16 alerts with the same scorer.

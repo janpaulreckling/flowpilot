@@ -161,8 +161,9 @@ export function CaseStudyPage() {
             guardrail was breached); invalid (broken traffic split).
           </li>
           <li>
-            The rule-based investigation passed 6 of 7 scored alerts. The miss has two overlapping causes; the report
-            names both, but the fixed scoring rule counts it as a miss.
+            The rule-based investigation passed 6 of 7 scored alerts on this dataset, but only 9 of 16 on three new
+            datasets it had never seen (2 of 8 for the iOS case): its rules were tuned on this dataset and are too
+            strict elsewhere. That is why the evaluation uses new seeds.
           </li>
         </ul>
       </Section>

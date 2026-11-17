@@ -20,6 +20,7 @@ Honest list of what FlowPilot does not do well yet. Each entry says where it sho
 - **E3's primary effect is not detectable at this sample size:** the true +1.5 pp lift in trial-to-paid comes out at +0.8 pp with a CI spanning zero; the guardrail decides that experiment.
 
 ## Investigations
+- **The rule-based investigator does not generalize as well as the default seed suggests.** On three new seeds it passes 9 of 16 alerts (2 of 8 for the iOS regression), against 6 of 7 on the seed its v2 rules were revised on. The main cause is a strict "calendar ruled out" rule (every other segment must move by less than 1 pp) and significance thresholds that mixed pre/post-release windows miss ([EVALUATION.md](EVALUATION.md)).
 - **Mixed causes are hard to score.** When two causes overlap (E3's treatment and the knock-on of S1 on iOS), the investigator reports both, but the fixed scoring rule counts it as a failure (1 of 7 in v2, METHOD_V2.md). In v1 the concentration rule also blamed the largest segment for evenly spread effects; v2 replaced it with a significance test.
 - **The rule-based investigator follows one fixed playbook.** It does not try dimensions beyond platform, channel and company size, and its recommendations are templates.
 - **The LLM agent has not been run against a real model yet** (D30). It is built and tested with a scripted model; quality and cost per run are unmeasured.

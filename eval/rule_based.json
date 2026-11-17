@@ -1,0 +1,281 @@
+{
+  "protocol": "docs/EVALUATION.md",
+  "seeds": [
+    101,
+    202,
+    303
+  ],
+  "date": "2026-11-17",
+  "summary": {
+    "cases": 16,
+    "rule_based": {
+      "passed": 9,
+      "cases": 16,
+      "by_scenario": {
+        "E3": "1/2",
+        "S1": "2/8",
+        "S2": "3/3",
+        "S5": "3/3"
+      }
+    }
+  },
+  "cases": [
+    {
+      "seed": 101,
+      "alert_id": "A-5b1e2b",
+      "metric": "week1_retention",
+      "segment": {
+        "acquisition_channel": "paid_social"
+      },
+      "scenario": "S2",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.148
+      }
+    },
+    {
+      "seed": 101,
+      "alert_id": "A-145587",
+      "metric": "event_volume",
+      "segment": {
+        "event_name": "task_created",
+        "platform": "android"
+      },
+      "scenario": "S5",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.005
+      }
+    },
+    {
+      "seed": 101,
+      "alert_id": "A-3e8be1",
+      "metric": "week4_retention",
+      "segment": {
+        "acquisition_channel": "paid_social"
+      },
+      "scenario": "S2",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.161
+      }
+    },
+    {
+      "seed": 101,
+      "alert_id": "A-bd1090",
+      "metric": "activation_rate",
+      "segment": {
+        "signup_platform": "ios"
+      },
+      "scenario": "S1",
+      "rule_based": {
+        "passed": false,
+        "failed_checks": [
+          "localized to iOS",
+          "version 4.12 named",
+          "invite step named",
+          "release found",
+          "calendar ruled out",
+          "fix and verify"
+        ],
+        "validator_issues": 0,
+        "seconds": 0.101
+      }
+    },
+    {
+      "seed": 101,
+      "alert_id": "A-42c111",
+      "metric": "activation_rate",
+      "segment": {},
+      "scenario": "S1",
+      "rule_based": {
+        "passed": false,
+        "failed_checks": [
+          "invite step named",
+          "fix and verify"
+        ],
+        "validator_issues": 0,
+        "seconds": 0.094
+      }
+    },
+    {
+      "seed": 101,
+      "alert_id": "A-6f2bb1",
+      "metric": "week4_retention",
+      "segment": {
+        "signup_platform": "web"
+      },
+      "scenario": "E3 (partial)",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.161
+      }
+    },
+    {
+      "seed": 202,
+      "alert_id": "A-145587",
+      "metric": "event_volume",
+      "segment": {
+        "event_name": "task_created",
+        "platform": "android"
+      },
+      "scenario": "S5",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.013
+      }
+    },
+    {
+      "seed": 202,
+      "alert_id": "A-3e8be1",
+      "metric": "week4_retention",
+      "segment": {
+        "acquisition_channel": "paid_social"
+      },
+      "scenario": "S2",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.327
+      }
+    },
+    {
+      "seed": 202,
+      "alert_id": "A-bd1090",
+      "metric": "activation_rate",
+      "segment": {
+        "signup_platform": "ios"
+      },
+      "scenario": "S1",
+      "rule_based": {
+        "passed": false,
+        "failed_checks": [
+          "calendar ruled out"
+        ],
+        "validator_issues": 0,
+        "seconds": 0.256
+      }
+    },
+    {
+      "seed": 202,
+      "alert_id": "A-770a40",
+      "metric": "activation_rate",
+      "segment": {},
+      "scenario": "S1",
+      "rule_based": {
+        "passed": false,
+        "failed_checks": [
+          "calendar ruled out"
+        ],
+        "validator_issues": 0,
+        "seconds": 0.172
+      }
+    },
+    {
+      "seed": 202,
+      "alert_id": "A-7f36a6",
+      "metric": "week1_retention",
+      "segment": {
+        "signup_platform": "ios"
+      },
+      "scenario": "S1 (partial)",
+      "rule_based": {
+        "passed": false,
+        "failed_checks": [
+          "localized to iOS"
+        ],
+        "validator_issues": 0,
+        "seconds": 0.154
+      }
+    },
+    {
+      "seed": 202,
+      "alert_id": "A-974419",
+      "metric": "activation_rate",
+      "segment": {
+        "company_size": "11-50"
+      },
+      "scenario": "S1 (partial)",
+      "rule_based": {
+        "passed": false,
+        "failed_checks": [
+          "calendar ruled out"
+        ],
+        "validator_issues": 0,
+        "seconds": 0.167
+      }
+    },
+    {
+      "seed": 303,
+      "alert_id": "A-145587",
+      "metric": "event_volume",
+      "segment": {
+        "event_name": "task_created",
+        "platform": "android"
+      },
+      "scenario": "S5",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.005
+      }
+    },
+    {
+      "seed": 303,
+      "alert_id": "A-e59d05",
+      "metric": "activation_rate",
+      "segment": {
+        "signup_platform": "ios"
+      },
+      "scenario": "S1",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.1
+      }
+    },
+    {
+      "seed": 303,
+      "alert_id": "A-42c111",
+      "metric": "activation_rate",
+      "segment": {},
+      "scenario": "S1",
+      "rule_based": {
+        "passed": true,
+        "failed_checks": [],
+        "validator_issues": 0,
+        "seconds": 0.075
+      }
+    },
+    {
+      "seed": 303,
+      "alert_id": "A-adaa5a",
+      "metric": "week1_retention",
+      "segment": {
+        "company_size": "51-200"
+      },
+      "scenario": "E3 (partial)",
+      "rule_based": {
+        "passed": false,
+        "failed_checks": [
+          "experiment named"
+        ],
+        "validator_issues": 0,
+        "seconds": 0.114
+      }
+    }
+  ]
+}
