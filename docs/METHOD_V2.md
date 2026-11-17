@@ -47,13 +47,15 @@ The two v1 E3 alerts that dropped out (week-1 retention for company size '1-10',
 | activation, all signups | S1 | pass | iOS → version 4.12 (z test) → 'invite sent' step by difference in differences, release inside the period |
 | activation, iOS | S1 | pass | same chain |
 | activation, paid search | S1 (partial) | pass | localizes to iOS 4.12, not to paid search |
-| week-4 retention, paid social | S2 | pass | E3 now listed as minor, no longer as a supported explanation |
+| week-4 retention, paid social | S2 | pass | E3 now listed as minor: it accounts for about −0.3 of the −5.2 pp change in paid social |
 | task_created, Android | S5 | pass | worded as "tracking gap or functional break"; check the feature before fixing tracking |
 | week-1 retention, paid social (July) | unexplained | pass | "The available data does not support a reliable conclusion." |
-| week-1 retention, iOS | E3 (partial) | **fail** | The report names both causes: E3 accounts for about −1.8 of the −2.1 pp change, and the change is concentrated in iOS 4.12 (the knock-on of S1). The fixed E3 rule ("no segment blamed") scores that as a failure; the scorer was not changed after seeing this. |
+| week-1 retention, iOS | E3 (partial) | **fail** | The report names both causes: E3 accounts for about −1.8 of the −5.5 pp change in iOS, and the rest sits in iOS 4.12 (the knock-on of S1). The fixed E3 rule ("no segment blamed") scores that as a failure; the scorer was not changed after seeing this. |
 
 v1: 7 of 9 passed. v2: **6 of 7** passed. The two v1 failures (company size '1-10' blamed for E3) are gone, because the concentration rule now tests the segment's change against the rest instead of its size.
 
 **Experiments:** verdicts unchanged (E1 ship, E2 no meaningful effect, E3 don't ship, E4 invalid). Every guardrail of E1–E3 except E3's breached week-2 retention is shown to lose less than 1 pp (Holm-adjusted non-inferiority p < 0.05).
 
-**Found while running v2:** retention investigations compared activation using the drilled-down app version, which has no baseline period. They now compare on the lead segment (fixed before scoring).
+**Found while running v2** (both fixed before the scorecard above):
+- Retention investigations compared activation using the drilled-down app version, which has no baseline period. They now compare on the lead segment.
+- The first v2 implementation compared an experiment's contribution with the overall change instead of the alerted segment's change, contrary to M6. It now uses the segment's change and the treated share within the segment.

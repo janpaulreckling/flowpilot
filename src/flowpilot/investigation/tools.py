@@ -254,8 +254,8 @@ class Toolbox:
             facts={f"{v}.days_before_data_end": float((last_day - d).days) for v, d in rows})
 
     def experiment_result(self, experiment_id: str | None = None, metric: str | None = None,
-                          start: str | date | None = None,
-                          end: str | date | None = None) -> ToolOutput:
+                          start: str | date | None = None, end: str | date | None = None,
+                          filters: dict[str, list[str]] | None = None) -> ToolOutput:
         """One experiment's analysis, or experiments overlapping a period with their effect
         on `metric` (treatment minus control)."""
         con = self.engine.con
@@ -279,20 +279,25 @@ class Toolbox:
                ORDER BY started_at""", [_d(end), _d(start)]).fetchall()
         found: list[dict[str, Any]] = []
         overlap_facts: dict[str, float] = {}
+        f = _filters(filters)
+        for dim in f:
+            if dim not in self.engine.definition(metric).dimensions:
+                raise MetricError(f"cannot filter experiments by {dim!r}")
+        where, fparams = self.engine._filters(f, [])
         window = con.execute(
-            "SELECT count(*) FROM owner_cohort WHERE signup_date >= ? AND signup_date < ?",
-            [_d(start), _d(end)]).fetchone()
+            f"SELECT count(*) FROM owner_cohort WHERE signup_date >= ? AND signup_date < ? "
+            f"{where}", [_d(start), _d(end), *fparams]).fetchone()
         n_window = int(window[0]) if window else 0
         for (xid,) in rows:
             cmp, _ = compare_arms(self.engine, metric, xid, self.engine.data_end)
             if cmp is None:
                 continue
             treated = con.execute(
-                """SELECT count(*) FROM experiment_assignments a
+                f"""SELECT count(*) FROM experiment_assignments a
                    JOIN owner_cohort o USING (workspace_id)
                    WHERE a.experiment_id = ? AND a.variant = 'treatment'
-                     AND o.signup_date >= ? AND o.signup_date < ?""",
-                [xid, _d(start), _d(end)]).fetchone()
+                     AND o.signup_date >= ? AND o.signup_date < ? {where}""",
+                [xid, _d(start), _d(end), *fparams]).fetchone()
             share = (int(treated[0]) if treated else 0) / max(n_window, 1)
             # v2 (M6): how much of the period's change this experiment can explain.
             expected = share * cmp.diff * 100

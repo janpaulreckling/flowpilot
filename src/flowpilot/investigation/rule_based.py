@@ -246,14 +246,21 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
                 citations=cite(ev_act, "diff_pp"))))
 
     # Competing explanation: experiments running on these cohorts.
-    ev_x = run.call("experiment_result", metric=m, start=cur_s, end=cur_e)
+    # v2 (M6): compare against the change of the alerted segment itself.
+    seg_alert = {k: [v] for k, v in alert.segment.items()}
+    ev_obs = (run.call("compare_periods", metric=m, filters=seg_alert, **period)
+              if seg_alert else ev_cmp)
+    observed = fact(ev_obs, "diff_pp")
+    observed = diff if observed is None else observed
+    ev_x = run.call("experiment_result", metric=m, start=cur_s, end=cur_e,
+                    filters=seg_alert or None)
     significant = [x for x in (ev_x.output.data["experiments"] if ev_x.output else [])
                    if (x["p_harm"] < 0.05 if down else
                        x["p_two_sided"] < 0.05 and x["diff_pp"] > 0)]
     # v2 (M6): an experiment explains the change only if it can account for enough of it.
     harmful = [x for x in significant
                if (x["expected_contribution_pp"] < 0) == down
-               and abs(x["expected_contribution_pp"]) >= EXPERIMENT_SHARE * abs(diff)]
+               and abs(x["expected_contribution_pp"]) >= EXPERIMENT_SHARE * abs(observed)]
     minor = [x for x in significant if x not in harmful]
 
     # ---- hypotheses ---------------------------------------------------------------------
@@ -298,9 +305,10 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
             claim=Claim(
                 text=f"Experiment {xid} overlaps these cohorts; its treatment changed "
                      f"{label.lower()} by {pp(x['diff_pp'])}, which accounts for about "
-                     f"{pp(x['expected_contribution_pp'])} of the {pp(diff)} change.",
+                     f"{pp(x['expected_contribution_pp'])} of the {pp(observed)} change"
+                     + (" in this segment." if seg_alert else "."),
                 citations=[*cite(ev_x, f"{xid}.diff_pp", f"{xid}.expected_contribution_pp"),
-                           *cite(ev_cmp, "diff_pp")])))
+                           *cite(ev_obs, "diff_pp")])))
     else:
         hypotheses.append(Hypothesis(name="Running experiment", status="ruled_out", claim=Claim(
             text=f"No experiment overlapping these cohorts changed {label.lower()} "
