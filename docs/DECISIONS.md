@@ -153,3 +153,7 @@ Active on at least one day in days 7N to 7N+6 after signup.
 The back-test produced 58 improvement notices from the count monitor (growth and the end of the summer dip). Parameters stay as committed before the first run. The Decision Center leads with decline alerts and lists improvement notices collapsed below them; the limitation is documented.
 
 - **Rejected:** a trend-corrected v2 tuned after seeing the results (risk of fitting this dataset); dropping improvement notices for counts (would hide real positive jumps such as a feature launch).
+
+## D28 — Phase 5 approved (2026-11-17, approved)
+
+Metric layer, monitor and API as built; next is the experimentation engine (Phase 6).
