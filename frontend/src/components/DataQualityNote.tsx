@@ -24,12 +24,12 @@ export function DataQualityNote({ start, end }: { start?: string; end?: string }
         {gaps.map((g, i) => (
           <span key={g.alert.alert_id}>
             {i > 0 && '; '}
-            {g.alert.segment.event_name} events from {valueLabel(g.alert.segment.platform ?? '')} were missing{' '}
-            {periodText(g.alert.first_period_start, g.alert.last_period_end)} (
+            {g.alert.segment.event_name} events from {valueLabel(g.alert.segment.platform ?? '')} dropped sharply{' '}
+            {periodText(g.alert.first_period_start, g.alert.last_period_end)} while sessions were normal (
             <Link to={`/alerts/${g.alert.alert_id}`} className="text-evidence underline underline-offset-2">
               {g.alert.alert_id}
             </Link>
-            )
+            ; tracking gap or functional break)
           </span>
         ))}
         . Activity and retention for that platform in those days are unreliable.
