@@ -113,3 +113,15 @@ The app opens on the inbox of open alerts, investigations and pending decisions,
 At about 1,200 new workspaces per week the 4-week experiments would be underpowered (E1 would reach significance only about 55% of the time), so the verdict would depend on luck. Volume is raised; effects and periods stay as approved. Also corrects an inconsistency in the first draft (it implied about 9,000 workspaces).
 
 - **Rejected:** longer experiments (changes the approved periods, more overlap); larger effects (unrealistic for an onboarding test); choosing a seed that happens to give the "right" answer (manipulation).
+
+## D21 — S4 signal: integration connected at setup (2026-11-17, approved)
+
+The misleading-correlation scenario uses an integration connected during setup (share depends only on company size) instead of "ever used". The first design also produced a within-size gap through survivorship bias (only active users can use a feature), which contradicted the documented ground truth. The survivorship trap of an "ever used" definition is kept as a documented lesson.
+
+- **Rejected:** keep "ever used" and widen the ground-truth statement.
+
+## D22 — Build order: visual prototype before the analytics engine (2026-11-17, approved)
+
+Frontend skeleton plus the Decision Center and one investigation report in the analyst-memo look, so design feedback comes early. Content that is not built yet is labeled "Prototype – sample content" in the UI.
+
+- **Rejected:** analytics engine first (real numbers in the prototype, but later design feedback).
