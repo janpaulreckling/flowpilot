@@ -1,5 +1,6 @@
 import { useQueries, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { DataQualityNote } from '@/components/DataQualityNote'
 import { ErrorState, Loading, PageHeader } from '@/components/States'
 import { SERIES_COLORS, TrendChart, toPoints } from '@/components/TrendChart'
 import { api, type MetricResult } from '@/lib/api'
@@ -126,7 +127,10 @@ export function OverviewPage() {
         ) : q.isError ? (
           <ErrorState key={title} error={q.error} />
         ) : (
-          <TrendChart key={title} title={title} data={toPoints(q.data.rows)} series={PLATFORMS} isRate={isRate} />
+          <div key={title} className="space-y-2">
+            <TrendChart title={title} data={toPoints(q.data.rows)} series={PLATFORMS} isRate={isRate} />
+            {!title.startsWith('Activation') && <DataQualityNote start={start} end={end} />}
+          </div>
         ),
       )}
     </div>

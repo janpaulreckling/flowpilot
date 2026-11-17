@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { DataQualityNote } from '@/components/DataQualityNote'
 import { ErrorState, Loading, PageHeader, SectionTitle } from '@/components/States'
 import { api } from '@/lib/api'
 import { addDays, formatCount, formatRate } from '@/lib/format'
@@ -87,6 +88,9 @@ export function FunnelsPage() {
 
       <section>
         <SectionTitle>Retention by signup week</SectionTitle>
+        <div className="mb-3">
+          <DataQualityNote start={cohortStart} end={dataset.data?.period_end_exclusive} />
+        </div>
         {retention.isPending ? (
           <Loading />
         ) : retention.isError ? (

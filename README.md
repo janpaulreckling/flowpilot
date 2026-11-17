@@ -1,6 +1,6 @@
 # FlowPilot
 
-> **When a product metric drops, FlowPilot finds where it broke and shows the evidence behind every number. It also stops experiment "wins" that would not hold up.**
+> **Product analytics and decision support with verifiable evidence.** When a product metric drops, FlowPilot finds where it broke and shows the evidence behind every number. It also stops experiment "wins" that would not hold up.
 
 [![CI](https://github.com/janpaulreckling/flowpilot/actions/workflows/ci.yml/badge.svg)](https://github.com/janpaulreckling/flowpilot/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.12-blue)
@@ -155,9 +155,12 @@ docs/             metrics, monitoring, experiments, investigations, method v2, l
 Known weaknesses are listed in [KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md), among them a count monitor that lags growth (58 improvement notices) and detection limited by metric windows.
 
 Next:
-1. Measure the LLM agent on all back-test alerts with the same scorer: pass rate, validator rejections, cost per run.
-2. Release-aware monitoring (invite rate per app version from day 1) to catch regressions like S1 faster.
-3. Sequential testing and variance reduction (CUPED) for experiments.
+1. Measure the LLM agent on the same 16 new-seed alerts with the same scorer ([EVALUATION.md](docs/EVALUATION.md)): pass rate, validator rejections, cost per run.
+2. A rule-based investigator that generalizes: a noise-aware seasonality test instead of the fixed 1 pp rule. It would be evaluated on further unseen seeds.
+3. Release-aware monitoring (invite rate per app version from day 1) to catch regressions like S1 faster.
+4. A growth- and seasonality-aware baseline for count metrics, to cut the improvement notices. It would ship as a new version evaluated on unseen data, not as a re-tune of the current monitor.
+5. Per-metric guardrail margins, chosen when an experiment is planned (for new experiments, not re-applied to finished ones).
+6. Sequential testing and variance reduction (CUPED) for experiments.
 
 ## Related
 

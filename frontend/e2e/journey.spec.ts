@@ -60,6 +60,8 @@ test('overview, funnels and the data page load from the snapshot', async ({ page
     await expect(page.locator('main h1')).toBeVisible()
     await expect(page.getByText('Could not load this data')).toHaveCount(0)
   }
+  await page.goto('./funnels')
+  await expect(page.getByRole('note')).toContainText('task_created events from Android were missing')
   await page.goto('./data')
   await page.getByRole('button', { name: 'Reveal the scenarios' }).click()
   await expect(page.getByText(/Activation drop localized to iOS 4\.12/)).toBeVisible()
