@@ -70,9 +70,9 @@ export interface InvestigationRecord {
   mode: 'rule_based' | 'llm'
   model: string | null
   cost_usd: number | null
-  status: 'completed' | 'failed'
+  status: 'running' | 'completed' | 'failed'
   failure_reason: string | null
-  report: Report
+  report: Report | null
   evidence: Evidence[]
   started_at: string
   finished_at: string
@@ -217,7 +217,8 @@ export async function postJson<T>(path: string, body?: unknown): Promise<T> {
   if (DEMO) throw new ApiError('This is the static demo: actions are not saved.')
   const res = await fetch(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    // The custom header makes the browser preflight cross-site requests, which the API refuses.
+    headers: { 'Content-Type': 'application/json', 'X-FlowPilot': '1' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!res.ok) throw new ApiError(await errorDetail(res))
@@ -237,23 +238,25 @@ async function errorDetail(res: Response): Promise<string> {
   return `${res.status} ${res.statusText}`
 }
 
+const enc = encodeURIComponent
+
 export const api = {
   dataset: () => fetchJson<DatasetInfo>('/api/dataset'),
   capabilities: () => fetchJson<Capabilities>('/api/capabilities'),
   alerts: () => fetchJson<StoredAlert[]>('/api/alerts'),
-  alertInvestigations: (id: string) => fetchJson<string[]>(`/api/alerts/${id}/investigations`),
-  investigation: (id: string) => fetchJson<InvestigationRecord>(`/api/investigations/${id}`),
+  alertInvestigations: (id: string) => fetchJson<string[]>(`/api/alerts/${enc(id)}/investigations`),
+  investigation: (id: string) => fetchJson<InvestigationRecord>(`/api/investigations/${enc(id)}`),
   investigate: (id: string, mode: 'rule_based' | 'llm') =>
-    postJson<InvestigationRecord>(`/api/alerts/${id}/investigate?mode=${mode}`),
+    postJson<InvestigationRecord>(`/api/alerts/${enc(id)}/investigate?mode=${mode}`),
   experiments: () => fetchJson<ExperimentSummary[]>('/api/experiments'),
-  experiment: (id: string) => fetchJson<ExperimentAnalysis>(`/api/experiments/${id}`),
+  experiment: (id: string) => fetchJson<ExperimentAnalysis>(`/api/experiments/${enc(id)}`),
   metrics: () => fetchJson<MetricInfo[]>('/api/metrics'),
   metric: (name: string, params: Record<string, string | string[]>) => {
     const q = new URLSearchParams()
     for (const [k, v] of Object.entries(params)) {
       for (const item of Array.isArray(v) ? v : [v]) q.append(k, item)
     }
-    return fetchJson<MetricResult>(`/api/metrics/${name}?${q.toString()}`)
+    return fetchJson<MetricResult>(`/api/metrics/${enc(name)}?${q.toString()}`)
   },
   funnel: (params: Record<string, string | string[]>) => {
     const q = new URLSearchParams()

@@ -116,12 +116,21 @@ class MetricEngine:
     def __init__(self, con: duckdb.DuckDBPyConnection) -> None:
         self.con = con
         self.metrics, _ = load_registry()
-        row = con.execute(
-            "SELECT value FROM dataset_info WHERE key = 'period_end_exclusive'"
-        ).fetchone()
-        if row is None:
-            raise MetricError("dataset_info.period_end_exclusive missing")
-        self.data_end = date.fromisoformat(str(row[0]))
+        info = dict(con.execute("SELECT key, value FROM dataset_info").fetchall())
+        if "period_end_exclusive" not in info or "period_start" not in info:
+            raise MetricError("dataset_info is incomplete")
+        self.data_start = date.fromisoformat(str(info["period_start"]))
+        self.data_end = date.fromisoformat(str(info["period_end_exclusive"]))
+
+    def _clamp(self, start: date, end: date) -> tuple[date, date]:
+        """Restrict a request to the data period, so a huge range cannot produce a huge
+        response (or overflow date arithmetic)."""
+        if start >= end:
+            raise MetricError("start must be before end")
+        if end <= self.data_start or start >= self.data_end:
+            raise MetricError(f"no data in that range; data covers {self.data_start} to "
+                              f"{self.data_end} (exclusive)")
+        return max(start, self.data_start), min(end, self.data_end)
 
     # ---- public API ---------------------------------------------------------------------
     def definition(self, metric: str) -> MetricDefinition:
@@ -143,8 +152,7 @@ class MetricEngine:
         filters = filters or {}
         if grain not in d.grains:
             raise MetricError(f"{metric} supports grains {d.grains}, not {grain!r}")
-        if start >= end:
-            raise MetricError("start must be before end")
+        start, end = self._clamp(start, end)
         for dim in [*filters, *([group_by] if group_by else [])]:
             if dim not in d.dimensions:
                 raise MetricError(f"{metric} cannot be filtered or grouped by {dim!r}; "
@@ -169,6 +177,7 @@ class MetricEngine:
     ) -> FunnelResult:
         """Onboarding funnel of signups in [start, end), each step within 7 days of signup."""
         filters = filters or {}
+        start, end = self._clamp(start, end)
         _, cohort_dims = load_registry()
         for dim in [*filters, *([group_by] if group_by else [])]:
             if dim not in cohort_dims:

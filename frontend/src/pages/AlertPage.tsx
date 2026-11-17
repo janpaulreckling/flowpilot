@@ -56,6 +56,15 @@ function AlertTrend({ alert }: { alert: Alert }) {
 
 function InvestigationView({ record }: { record: InvestigationRecord }) {
   const r = record.report
+  if (record.status === 'running' || !r) {
+    return (
+      <p role="status" className="rounded-md border border-border px-4 py-3 text-sm text-muted-foreground">
+        {record.status === 'running'
+          ? `Investigation ${record.investigation_id} is still running.`
+          : `Investigation ${record.investigation_id} did not complete: ${record.failure_reason ?? 'unknown error'}`}
+      </p>
+    )
+  }
   return (
     <EvidenceProvider items={record.evidence}>
       <article className="space-y-8">

@@ -6,6 +6,7 @@ reads metrics only through the metric layer and never reads the ground truth.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import statistics
 from dataclasses import dataclass
@@ -229,8 +230,11 @@ def _merge(detections: list[Detection], engine: MetricEngine) -> list[Alert]:
                 windows=sorted({x.window for x in episode}), detections=len(episode),
             ))
     alerts.sort(key=lambda a: (a.first_detected_on, a.metric, str(a.segment)))
-    for i, a in enumerate(alerts, start=1):
-        a.alert_id = f"A-{i:04d}"
+    for a in alerts:
+        # Stable across re-runs: derived from what the alert is about, not its position.
+        ident = (f"{a.metric}|{a.kind}|{sorted(a.segment.items())}|{a.direction}|"
+                 f"{a.first_period_start.isoformat()}")
+        a.alert_id = "A-" + hashlib.sha1(ident.encode()).hexdigest()[:6]
     return alerts
 
 

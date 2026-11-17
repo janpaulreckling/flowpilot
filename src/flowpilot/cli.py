@@ -54,7 +54,7 @@ def main(argv: list[str] | None = None) -> None:
     elif args.command == "serve":
         import uvicorn
 
-        uvicorn.run("flowpilot.api.app:app", port=args.port, reload=False)
+        uvicorn.run("flowpilot.api.app:app", host="127.0.0.1", port=args.port, reload=False)
 
 
 if __name__ == "__main__":

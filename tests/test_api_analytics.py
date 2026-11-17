@@ -10,11 +10,13 @@ from flowpilot.api.app import app
 from flowpilot.cli import main
 from tests.conftest import World
 
+WRITE = {"X-FlowPilot": "1"}
+
 
 @pytest.fixture()
 def client(world: World, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(world.db_path.parent))
-    return TestClient(app)
+    return TestClient(app, headers=WRITE)
 
 
 def test_metric_catalog_lists_definitions(client: TestClient) -> None:
@@ -55,7 +57,7 @@ def test_monitor_alerts_are_stored_and_keep_their_status(
     (data / "flowpilot.duckdb").write_bytes(world.db_path.read_bytes())
     monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
     main(["monitor"])
-    client = TestClient(app)
+    client = TestClient(app, headers=WRITE)
     first = client.get("/api/alerts").json()
     assert first, "the small world should still produce some alerts or notices"
     assert all(a["status"] == "open" for a in first)
@@ -94,7 +96,7 @@ def test_investigation_is_run_stored_and_reloaded(
     (data / "flowpilot.duckdb").write_bytes(world.db_path.read_bytes())
     monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
     main(["monitor"])
-    client = TestClient(app)
+    client = TestClient(app, headers=WRITE)
     alert_id = client.get("/api/alerts").json()[0]["alert"]["alert_id"]
     record = client.post(f"/api/alerts/{alert_id}/investigate").json()
     assert record["report"]["mode"] == "rule_based"
@@ -127,7 +129,7 @@ def test_decisions_require_a_note_and_an_existing_subject(
     (data / "flowpilot.duckdb").write_bytes(world.db_path.read_bytes())
     monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
     main(["monitor"])
-    client = TestClient(app)
+    client = TestClient(app, headers=WRITE)
     alert_id = client.get("/api/alerts").json()[0]["alert"]["alert_id"]
     inv = client.post(f"/api/alerts/{alert_id}/investigate").json()["investigation_id"]
     base = {"subject_type": "proposal", "subject_id": inv, "outcome": "approved"}
@@ -142,3 +144,54 @@ def test_decisions_require_a_note_and_an_existing_subject(
     assert client.get("/api/decisions").json()[0]["note"] == "Ship the fix in 4.13."
     status = {a["alert"]["alert_id"]: a["status"] for a in client.get("/api/alerts").json()}
     assert status[alert_id] == "reviewed"
+
+
+def test_writes_need_the_header_and_a_local_origin(
+    world: World, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "flowpilot.duckdb").write_bytes(world.db_path.read_bytes())
+    monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
+    main(["monitor"])
+    alert_id = TestClient(app).get("/api/alerts").json()[0]["alert"]["alert_id"]
+    bare = TestClient(app)
+    assert bare.post(f"/api/alerts/{alert_id}/investigate").status_code == 403
+    foreign = TestClient(app, headers={**WRITE, "Origin": "https://evil.example"})
+    assert foreign.post(f"/api/alerts/{alert_id}/investigate").status_code == 403
+    local = TestClient(app, headers={**WRITE, "Origin": "http://localhost:5173"})
+    assert local.post(f"/api/alerts/{alert_id}/investigate").status_code == 200
+
+
+def test_second_run_while_one_is_running_is_refused(
+    world: World, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from flowpilot.appstate import db as appdb
+    from flowpilot.appstate import investigations as inv_store
+
+    data = tmp_path / "data"
+    data.mkdir()
+    (data / "flowpilot.duckdb").write_bytes(world.db_path.read_bytes())
+    monkeypatch.setenv("FLOWPILOT_DATA_DIR", str(data))
+    main(["monitor"])
+    client = TestClient(app, headers=WRITE)
+    alert_id = client.get("/api/alerts").json()[0]["alert"]["alert_id"]
+    con = appdb.connect(data / "appstate.sqlite")
+    running = inv_store.start(con, alert_id, "rule_based")
+    con.close()
+    r = client.post(f"/api/alerts/{alert_id}/investigate")
+    assert r.status_code == 409 and running in r.json()["detail"]
+
+
+@pytest.mark.parametrize("params", [
+    {"start": "0001-01-02", "end": "2100-01-01", "grain": "day"},
+    {"start": "2025-01-01", "end": "9999-12-31"},
+])
+def test_huge_ranges_are_clamped_to_the_data(client: TestClient,
+                                             params: dict[str, str]) -> None:
+    r = client.get("/api/metrics/signups", params=params)
+    assert r.status_code == 200 and len(r.content) < 200_000
+    assert client.get("/api/funnel", params={"start": "2025-01-01",
+                                             "end": "9999-12-31"}).status_code == 200
+    assert client.get("/api/metrics/signups", params={"start": "1990-01-01",
+                                                      "end": "1991-01-01"}).status_code == 400

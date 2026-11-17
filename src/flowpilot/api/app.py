@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterator
-from datetime import UTC, date, datetime
+from collections.abc import Awaitable, Callable, Iterator
+from datetime import date
 from typing import Annotated, Literal
+from urllib.parse import urlparse
 
 import duckdb
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from flowpilot import __version__
@@ -65,6 +67,21 @@ class MetricInfo(BaseModel):
 
 
 app = FastAPI(title="FlowPilot API", version=__version__)
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
+@app.middleware("http")
+async def guard_writes(request: Request, call_next: Callable[[Request], Awaitable[Response]]
+                       ) -> Response:
+    """Writes need a custom header (which forces a CORS preflight that no other site passes)
+    and must not come from a foreign origin, so a web page cannot start paid AI runs."""
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        origin = request.headers.get("origin")
+        if origin and urlparse(origin).hostname not in LOCAL_HOSTS:
+            return JSONResponse({"detail": "cross-origin write refused"}, status_code=403)
+        if request.headers.get("x-flowpilot") != "1":
+            return JSONResponse({"detail": "missing X-FlowPilot header"}, status_code=403)
+    return await call_next(request)
 
 
 def analytics() -> Iterator[duckdb.DuckDBPyConnection]:
@@ -251,25 +268,33 @@ def run_investigation(
         alert = tools.alerts.get(alert_id)
         if alert is None:
             raise HTTPException(status_code=404, detail=f"no alert {alert_id}")
-        started = datetime.now(UTC).isoformat(timespec="seconds")
-        if mode == "rule_based":
-            report, log = investigate(tools, alert)
-            inv_id = inv_store.save(app_con, report, log, validate(report, log), started)
-        else:
-            run, log = run_agent(tools, alert)
-            report = run.report or InvestigationReport(
-                alert_id=alert_id, mode="llm", title="LLM investigation failed",
-                summary=[Claim(text=NO_CONCLUSION)], findings=[], hypotheses=[],
-                limitations=[f"Run ended: {run.failure} {run.detail or ''}".strip()],
-                recommendation=Recommendation(kind="no_action", claim=Claim(
-                    text="Use the rule-based investigation, or retry later.")),
-                conclusion_supported=False)
-            issues = validate(report, log) if run.report else []
-            inv_id = inv_store.save(app_con, report, log, issues, started, model=run.model,
-                                    input_tokens=run.input_tokens,
-                                    output_tokens=run.output_tokens, cost_usd=run.cost_usd,
-                                    failure=None if run.status == "completed" else
-                                    f"{run.failure}: {run.detail or ''}")
+        try:
+            inv_id = inv_store.start(app_con, alert_id, mode)
+        except inv_store.AlreadyRunning as exc:
+            raise HTTPException(status_code=409,
+                                detail=f"investigation {exc} is already running") from exc
+        try:
+            if mode == "rule_based":
+                report, log = investigate(tools, alert)
+                inv_store.finish(app_con, inv_id, report, log, validate(report, log))
+            else:
+                run, log = run_agent(tools, alert)
+                report = run.report or InvestigationReport(
+                    alert_id=alert_id, mode="llm", title="LLM investigation failed",
+                    summary=[Claim(text=NO_CONCLUSION)], findings=[], hypotheses=[],
+                    limitations=[f"Run ended: {run.failure} {run.detail or ''}".strip()],
+                    recommendation=Recommendation(kind="no_action", claim=Claim(
+                        text="Use the rule-based investigation, or retry later.")),
+                    conclusion_supported=False)
+                issues = validate(report, log) if run.report else []
+                inv_store.finish(app_con, inv_id, report, log, issues, model=run.model,
+                                 input_tokens=run.input_tokens,
+                                 output_tokens=run.output_tokens, cost_usd=run.cost_usd,
+                                 failure=None if run.status == "completed" else
+                                 f"{run.failure}: {run.detail or ''}")
+        except Exception as exc:
+            inv_store.abort(app_con, inv_id, f"internal error ({type(exc).__name__})")
+            raise
         record = inv_store.load(app_con, inv_id)
         assert record is not None
         return record

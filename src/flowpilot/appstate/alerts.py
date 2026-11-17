@@ -29,6 +29,10 @@ def save_run(con: sqlite3.Connection, run: MonitorRun) -> int:
                        updated_at = excluded.updated_at""",
                 (a.alert_id, a.model_dump_json(), a.first_detected_on.isoformat(), now),
             )
+        current = [a.alert_id for a in run.alerts]
+        marks = ", ".join("?" for _ in current) or "''"
+        con.execute(f"UPDATE alerts SET status = 'closed', updated_at = ? "  # noqa: S608
+                    f"WHERE alert_id NOT IN ({marks}) AND status != 'closed'", [now, *current])
     return len(run.alerts)
 
 
