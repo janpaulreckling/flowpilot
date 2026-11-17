@@ -15,7 +15,13 @@
 - FastAPI skeleton: `/api/health`, `/api/dataset`.
 - Tests: 34 passing locally (determinism, 19 consistency invariants, scenario checks, read-only and constraint enforcement, API, app state). CI not yet run on GitHub (repo unpublished).
 
+## 2026-11-17 — Scenario checks and design prototype
+- Tolerance-band tests per scenario on the full default dataset (`tests/test_scenarios.py`); S2 recalibrated across seeds; D23 recorded.
+- Frontend skeleton: Vite + React + TypeScript + Tailwind + shadcn/ui + Recharts, analyst-memo theme (light/dark), app shell with navigation and live dataset footer from `/api/dataset`.
+- Prototype screens (D22): Decision Center and the investigation report for alert A-0142 with evidence side panel, chart with direct labels and table view, decision form requiring a note. Sample content is labeled in the UI.
+- Verified: frontend typecheck, lint, 6 Vitest tests, production build; checked in a browser at desktop and phone width, light and dark, no console errors. Backend: 44 pytest tests.
+
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
-- Frontend skeleton and the Phase 3 visual prototype (Decision Center + one investigation report).
+- Product-owner feedback on the design prototype.
 - Phase 5 analytics engine: YAML metric registry, KPIs, funnels, cohorts, segments, anomaly monitor, validated against ground truth.

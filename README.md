@@ -15,4 +15,5 @@ uv sync
 make data    # simulate ~6M events and build data/flowpilot.duckdb (about 10 s)
 make check   # ruff, mypy, pytest
 make serve   # API on http://localhost:8000/api/dataset
+make ui      # UI on http://localhost:5173 (design prototype: Decision Center + one investigation)
 ```
