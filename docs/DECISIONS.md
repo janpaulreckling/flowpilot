@@ -161,3 +161,9 @@ Metric layer, monitor and API as built; next is the experimentation engine (Phas
 ## D29 — Phase 6 approved; Phase 7 starts rule-based (2026-11-17, approved)
 
 Experimentation engine as built. Phase 7 builds the read-only tools, evidence tracking and the rule-based investigator first; the Claude agent follows once API access and the model are settled (D14).
+
+## D30 — LLM agent: build now, real runs later (2026-11-17, approved)
+
+The full agent loop is built and tested with a scripted model (no cost). Real runs wait for the product owner's own API key; until then the UI labels the LLM mode as not enabled and investigations run rule-based.
+
+- **Rejected:** getting a key first (blocks the build); dropping the agent (loses the main differentiator).
