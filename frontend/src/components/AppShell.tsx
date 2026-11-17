@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router'
-import { api } from '@/lib/api'
+import { api, DEMO } from '@/lib/api'
 import { formatCount } from '@/lib/format'
 import { applyTheme, readPreference, savePreference, type ThemePreference } from '@/lib/theme'
 
@@ -125,6 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="min-w-0">
         <div className="border-b border-border bg-muted/60 px-4 py-1.5 text-center text-xs text-muted-foreground md:px-10">
           All data is synthetic: a simulated SaaS product with documented, injected scenarios.
+          {DEMO && ' Static demo: recorded results, actions are not saved.'}
         </div>
         <main className="mx-auto max-w-5xl px-4 py-8 md:px-10 md:py-10">{children}</main>
       </div>
