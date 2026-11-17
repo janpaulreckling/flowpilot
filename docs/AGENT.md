@@ -70,3 +70,14 @@ Changes made after the first run, none to a decision threshold:
 1. **Validator false positives:** digits inside names ("week-4", company size "1-10") were read as measurements. Fixed by ignoring hyphenated tokens and quoting category values.
 2. **Data-quality tool:** the first version compared raw event counts per app version, which mixed the tracking gap with users moving from 7.2 to 7.3 ("other versions −82%"). It now compares **events per session** per version.
 3. A parsing bug for version keys containing a dot.
+
+## LLM agent (built, not yet run against the real API — D30)
+
+`src/flowpilot/investigation/llm_agent.py`: a hand-written tool-use loop on the Claude Messages API (D4).
+
+- **Tools:** the eleven read-only tools above plus `submit_report`. Inputs are validated before execution; an unknown tool (for example a write attempt) or a bad input comes back to the model as an error result and is never executed.
+- **Evidence:** each tool result is returned with its evidence id. `submit_report` runs the evidence validator; rejected claims go back to the model with the reasons, up to 3 attempts. A report that says `conclusion_supported = false` must contain the exact no-conclusion sentence.
+- **Limits** (defaults): 16 model turns, 30 tool calls, 400k tokens, US$1.50 per run, 300 s. Each limit, a refusal and an API error end the run with a named failure state; failed runs are stored, and the rule-based investigation stays available.
+- **Model:** configurable with `FLOWPILOT_MODEL` (default `claude-opus-5-5`; final choice per D14 after measured runs). Server-side refusal fallback (`fallbacks: "default"`) is enabled; the system prompt is cached.
+- **Safety:** tool results carry no user-generated text, and the system prompt tells the model that tool results are data, not instructions.
+- **Tested with a scripted model** (`tests/test_llm_agent.py`): completion, a hallucinated number fed back and corrected, persistent hallucination failing the run, a refused write attempt, bad tool input, every limit, refusal, API error, the no-conclusion rule, a read-only tool surface. **Not yet measured:** behavior and cost of a real model; that needs an API key (D30).

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
-from typing import Annotated
+from typing import Annotated, Literal
 
 import duckdb
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -16,7 +17,14 @@ from flowpilot.appstate import investigations as inv_store
 from flowpilot.appstate.alerts import StoredAlert, list_alerts
 from flowpilot.experiments.analysis import ExperimentAnalysis, analyze
 from flowpilot.experiments.stats import detectable_effect, units_per_arm
-from flowpilot.investigation.report import validate
+from flowpilot.investigation.llm_agent import DEFAULT_MODEL, llm_enabled, run_agent
+from flowpilot.investigation.report import (
+    NO_CONCLUSION,
+    Claim,
+    InvestigationReport,
+    Recommendation,
+    validate,
+)
 from flowpilot.investigation.rule_based import investigate
 from flowpilot.investigation.tools import Toolbox
 from flowpilot.metrics.engine import (
@@ -215,9 +223,26 @@ def planner(
     )
 
 
+class Capabilities(BaseModel):
+    llm_enabled: bool
+    model: str | None
+
+
+@app.get("/api/capabilities")
+def capabilities() -> Capabilities:
+    enabled = llm_enabled()
+    return Capabilities(llm_enabled=enabled,
+                        model=os.environ.get("FLOWPILOT_MODEL", DEFAULT_MODEL) if enabled else None)
+
+
 @app.post("/api/alerts/{alert_id}/investigate")
-def run_investigation(con: Analytics, alert_id: str) -> inv_store.InvestigationRecord:
-    """Run the rule-based investigator (no LLM) on an alert and store the result."""
+def run_investigation(
+    con: Analytics, alert_id: str, mode: Literal["rule_based", "llm"] = "rule_based",
+) -> inv_store.InvestigationRecord:
+    """Investigate an alert, rule-based (no LLM) or with the LLM agent, and store the result."""
+    if mode == "llm" and not llm_enabled():
+        raise HTTPException(status_code=409, detail="LLM mode is not enabled: set "
+                            "ANTHROPIC_API_KEY. Rule-based investigations work without it.")
     app_con = appdb.connect(get_paths().app_db)
     try:
         stored = list_alerts(app_con)
@@ -226,8 +251,24 @@ def run_investigation(con: Analytics, alert_id: str) -> inv_store.InvestigationR
         if alert is None:
             raise HTTPException(status_code=404, detail=f"no alert {alert_id}")
         started = datetime.now(UTC).isoformat(timespec="seconds")
-        report, log = investigate(tools, alert)
-        inv_id = inv_store.save(app_con, report, log, validate(report, log), started)
+        if mode == "rule_based":
+            report, log = investigate(tools, alert)
+            inv_id = inv_store.save(app_con, report, log, validate(report, log), started)
+        else:
+            run, log = run_agent(tools, alert)
+            report = run.report or InvestigationReport(
+                alert_id=alert_id, mode="llm", title="LLM investigation failed",
+                summary=[Claim(text=NO_CONCLUSION)], findings=[], hypotheses=[],
+                limitations=[f"Run ended: {run.failure} {run.detail or ''}".strip()],
+                recommendation=Recommendation(kind="no_action", claim=Claim(
+                    text="Use the rule-based investigation, or retry later.")),
+                conclusion_supported=False)
+            issues = validate(report, log) if run.report else []
+            inv_id = inv_store.save(app_con, report, log, issues, started, model=run.model,
+                                    input_tokens=run.input_tokens,
+                                    output_tokens=run.output_tokens, cost_usd=run.cost_usd,
+                                    failure=None if run.status == "completed" else
+                                    f"{run.failure}: {run.detail or ''}")
         record = inv_store.load(app_con, inv_id)
         assert record is not None
         return record

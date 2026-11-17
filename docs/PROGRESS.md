@@ -43,7 +43,13 @@
 - Measured: 7 of 9 decline alerts investigated correctly (S1 ×3, S2, S5, false alarm, one E3); 2 E3 alerts fail on segment attribution (documented).
 - 98 pytest tests.
 
+## 2026-11-17 — Phase 7 part 2: LLM agent loop (D30)
+- Bounded tool-use loop on the Claude Messages API with `submit_report` + evidence validator feedback, limits with named failure states, refusal fallback, cached system prompt.
+- API: `POST /api/alerts/{id}/investigate?mode=llm` (409 without a key), `GET /api/capabilities`.
+- Tested with a scripted model; no real-model run yet (needs the product owner's API key). 111 pytest tests.
+
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Product-owner feedback on the design prototype.
-- Phase 7 part 2: LLM agent loop (D4, D14).
+- Product-owner approval of Phase 7; real LLM runs when an API key exists.
+- Phase 8: full frontend on the real API.

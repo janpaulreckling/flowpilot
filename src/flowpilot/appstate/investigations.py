@@ -16,6 +16,8 @@ class InvestigationRecord(BaseModel):
     investigation_id: str
     alert_id: str
     mode: str
+    model: str | None = None
+    cost_usd: float | None = None
     status: str  # completed | failed
     failure_reason: str | None
     report: InvestigationReport
@@ -27,13 +29,14 @@ class InvestigationRecord(BaseModel):
 def save(con: sqlite3.Connection, report: InvestigationReport, log: EvidenceLog,
          issues: list[ValidationIssue], started_at: str,
          model: str | None = None, input_tokens: int | None = None,
-         output_tokens: int | None = None, cost_usd: float | None = None) -> str:
+         output_tokens: int | None = None, cost_usd: float | None = None,
+         failure: str | None = None) -> str:
     finished = datetime.now(UTC).isoformat(timespec="seconds")
     n = con.execute("SELECT count(*) FROM investigations WHERE alert_id = ?",
                     [report.alert_id]).fetchone()[0]
     inv_id = f"INV-{report.alert_id.removeprefix('A-')}-{n + 1}"
-    status = "failed" if issues else "completed"
-    reason = "; ".join(f"{i.problem} in: {i.claim[:80]}" for i in issues) or None
+    status = "failed" if issues or failure else "completed"
+    reason = failure or "; ".join(f"{i.problem} in: {i.claim[:80]}" for i in issues) or None
     with con:
         con.execute(
             """INSERT INTO investigations (investigation_id, alert_id, mode, status,
@@ -61,7 +64,8 @@ def save(con: sqlite3.Connection, report: InvestigationReport, log: EvidenceLog,
 def load(con: sqlite3.Connection, investigation_id: str) -> InvestigationRecord | None:
     row = con.execute(
         """SELECT investigation_id, alert_id, mode, status, failure_reason, report_json,
-                  started_at, finished_at FROM investigations WHERE investigation_id = ?""",
+                  started_at, finished_at, model, cost_usd
+           FROM investigations WHERE investigation_id = ?""",
         [investigation_id]).fetchone()
     if row is None:
         return None
@@ -76,7 +80,8 @@ def load(con: sqlite3.Connection, investigation_id: str) -> InvestigationRecord 
     return InvestigationRecord(
         investigation_id=row[0], alert_id=row[1], mode=row[2], status=row[3],
         failure_reason=row[4], report=InvestigationReport.model_validate_json(row[5]),
-        evidence=evidence, started_at=row[6], finished_at=row[7] or "")
+        evidence=evidence, started_at=row[6], finished_at=row[7] or "", model=row[8],
+        cost_usd=row[9])
 
 
 def for_alert(con: sqlite3.Connection, alert_id: str) -> list[str]:

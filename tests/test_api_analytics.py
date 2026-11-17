@@ -107,3 +107,13 @@ def test_investigation_is_run_stored_and_reloaded(
     status = {a["alert"]["alert_id"]: a["status"] for a in client.get("/api/alerts").json()}
     assert status[alert_id] == "investigating"
     assert client.post("/api/alerts/A-9999/investigate").status_code == 404
+
+
+def test_llm_mode_is_refused_without_a_key(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+    assert client.get("/api/capabilities").json() == {"llm_enabled": False, "model": None}
+    r = client.post("/api/alerts/A-0001/investigate", params={"mode": "llm"})
+    assert r.status_code == 409 and "Rule-based" in r.json()["detail"]
