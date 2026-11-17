@@ -1,6 +1,6 @@
 # Investigations — Tools, Evidence and the Rule-Based Investigator
 
-Implements the technical blueprint §7. **The investigator's rules below were committed on 2026-11-17 before it was run against any alert.** Neither the tools nor the investigator read the ground truth; only `flowpilot.evaluation` does, to score reports afterwards.
+Design: D4 in [DECISIONS.md](DECISIONS.md). **The investigator's rules below were committed on 2026-11-17 before it was run against any alert.** Neither the tools nor the investigator read the ground truth; only `flowpilot.evaluation` does, to score reports afterwards.
 
 ## Tools (typed, read-only)
 

@@ -21,7 +21,7 @@ Status: **approved and frozen 2026-11-17** (D19, D20). All data is synthetic. Th
 
 | ID | Scenario | What really happens in the generator | What a correct analysis concludes |
 |---|---|---|---|
-| **S1** (demo story, D8) | Mobile onboarding regression | From 2026-10-26, iOS release 4.12 breaks the invite flow: invite completion for iOS users on 4.12 drops sharply; iOS activation falls from about 38% to about 26%, overall activation falls by roughly 3–4 pp (expected about 3.5 pp; 2.8 pp at the default seed) | Drop localized to iOS 4.12 at the invite step; not seasonality |
+| **S1** (demo story) | Mobile onboarding regression | From 2026-10-26, iOS release 4.12 breaks the invite flow: invite completion for iOS users on 4.12 drops sharply; iOS activation falls from about 38% to about 26%, overall activation falls by roughly 3–4 pp (expected about 3.5 pp; 2.8 pp at the default seed) | Drop localized to iOS 4.12 at the invite step; not seasonality |
 | **S1b** (decoy) | Small channel-mix shift in the same weeks | Paid search share rises by about 5 pp in late October; paid search users activate a bit less | Mix explains only a small part of the S1 drop; the rate effect on iOS dominates |
 | **S2** | Retention drop in one acquisition cohort | Paid social signups from 2026-09-07 (new campaign targeting) have week-4 retention about 8 pp lower; their activation is unchanged | Retention problem in the paid social cohort, not an onboarding problem |
 | **S3** | Uneven feature adoption | "Timeline view" launches 2026-08-17 on web only; adoption grows on web, stays at zero on mobile | Expected by design (web-only launch), not a defect |
