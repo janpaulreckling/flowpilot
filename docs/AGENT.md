@@ -84,4 +84,4 @@ Changes made after the first run, none to a decision threshold:
 - **Tested with a scripted model** (`tests/test_llm_agent.py`): completion, a hallucinated number fed back and corrected, persistent hallucination failing the run, a refused write attempt, bad tool input, every limit, refusal, API error, the no-conclusion rule, a read-only tool surface. **Not yet measured:** behavior and cost of a real model; that needs an API key (D30).
 
 
-> **v2:** localization, funnel, version, experiment and tracking-gap rules changed after an independent review; see [METHOD_V2.md](METHOD_V2.md). The scorecard above is v1; alert ids changed in v2.
+> **v2:** localization, funnel, version, experiment and tracking-gap rules changed after a structured method review; see [METHOD_V2.md](METHOD_V2.md). The scorecard above is v1; alert ids changed in v2.

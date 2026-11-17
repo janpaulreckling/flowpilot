@@ -12,6 +12,8 @@
 
 ![Decision Center: incidents ordered by strength, the iOS 4.12 activation drop first](docs/img/decision-center.png)
 
+Personas, jobs to be done and the demo journey are in the [product brief](docs/PRODUCT_BRIEF.md).
+
 All data is **synthetic**: a simulated team task-management product called *Tasklane*, with injected, documented problems ([DATA_SCENARIOS.md](docs/DATA_SCENARIOS.md)). That is deliberate. Because the true causes are known, every result below can be checked against them.
 
 ## Why it matters
@@ -56,7 +58,7 @@ All numbers come from the default synthetic dataset (seed 20261116: 71,402 works
 | **Rule-based investigator** (every decline alert) | 6 of 7 pass the fixed scoring criteria. The miss is a mixed-cause case: the report names both causes, and the scoring rule still counts it as a miss ([METHOD_V2.md](docs/METHOD_V2.md)). |
 | **Statistics checks** | Over 2,000 A/A simulations, the 95% interval's coverage falls inside the tested 93.5–96.5% band, including with clustered users. A naive per-user interval covers less than 85%. |
 
-The rules were committed before each component first ran: the monitor, the experiment analysis and the investigator. An independent review later found weaknesses. The fixes were committed as a documented **v2** with v1 and v2 results side by side ([METHOD_V2.md](docs/METHOD_V2.md)), and the git history shows the order.
+The rules were committed before each component first ran: the monitor, the experiment analysis and the investigator. A structured method review later found weaknesses. The fixes were committed as a documented **v2** with v1 and v2 results side by side ([METHOD_V2.md](docs/METHOD_V2.md)), and the git history shows the order.
 
 ## How it works
 

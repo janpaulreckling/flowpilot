@@ -1,6 +1,6 @@
-# Method v2 — Changes After an Independent Review
+# Method v2 — Changes After a Method Review
 
-An independent review (statistics, architecture and security, interview lens) found weaknesses in rules that had been fixed before their first run (MONITORING.md, EXPERIMENTS.md, AGENT.md). Changing a pre-registered rule after seeing results can turn into tuning, so this file does three things:
+A structured method review (statistics, architecture and security) found weaknesses in rules that had been fixed before their first run (MONITORING.md, EXPERIMENTS.md, AGENT.md). Changing a pre-registered rule after seeing results can turn into tuning, so this file does three things:
 
 1. It lists every rule change and its reason **before** v2 is run (this commit).
 2. It keeps the v1 results, which stay in the other documents, labeled v1.

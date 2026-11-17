@@ -36,7 +36,7 @@ The trade-offs that shaped FlowPilot, each with the alternatives that were rejec
 
 *Rejected:* sequential tests (harder to explain and validate), Bayesian analysis (priors are easy to attack).
 
-**D33 · Method v2 after an independent review.** A review found real weaknesses, among them a too-small monitor standard error, a localization rule that measured segment size, and a too-generous evaluation. The rules were changed in a separate commit before re-running, and v1 and v2 results are reported side by side ([METHOD_V2.md](METHOD_V2.md)).
+**D33 · Method v2 after a structured method review.** The review found real weaknesses, among them a too-small monitor standard error, a localization rule that measured segment size, and a too-generous evaluation. The rules were changed in a separate commit before re-running, and v1 and v2 results are reported side by side ([METHOD_V2.md](METHOD_V2.md)).
 
 ## Investigations and AI
 
