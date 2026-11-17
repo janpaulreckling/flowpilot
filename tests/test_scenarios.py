@@ -76,7 +76,8 @@ def diff(con: duckdb.DuckDBPyConnection, col: str, where_a: str, where_b: str) -
                       f"avg({col}) FILTER (WHERE {where_b}) FROM memory.main.f")
 
 
-PRE_S1 = "signup_at >= '2026-09-28' AND signup_at < '2026-10-26'"
+# Pre-window after E1 ended (Oct 11), so E1's treatment does not inflate the baseline.
+PRE_S1 = "signup_at >= '2026-10-12' AND signup_at < '2026-10-26'"
 POST_S1 = "signup_at >= '2026-10-26' AND signup_at < '2026-11-09'"  # 7-day window complete
 
 
@@ -180,7 +181,8 @@ def test_e3_upgrade_prompt_hurts_week2_retention(full: duckdb.DuckDBPyConnection
         FROM (SELECT a.variant, EXISTS (SELECT 1 FROM subscriptions s
                      WHERE s.workspace_id = a.workspace_id AND s.plan = 'team')::INTEGER AS paid
               FROM experiment_assignments a WHERE a.experiment_id = 'E3')""")
-    assert -0.002 <= conversion <= 0.035
+    # True uplift +1.5 pp (SE about 0.6 pp): the lower bound catches a lost uplift.
+    assert 0.005 <= conversion <= 0.035
 
 
 def test_e4_sample_ratio_mismatch(full: duckdb.DuckDBPyConnection) -> None:

@@ -68,19 +68,20 @@ class ValidationIssue(BaseModel):
 # Numbers as shown in claims: "−2.8 pp", "+3.4 pp", "34.4%", "1,573", "4.12" (versions are
 # excluded below). Unicode minus and ASCII hyphen are both accepted.
 _NUMBER = re.compile(r"(?<![\w.\-\u2212])([+\-\u2212]?\d[\d,]*(?:\.\d+)?)\s*(pp|%)?")
-_VERSION = re.compile(r"\b\d+\.\d+(?:\.\d+)?\b")
+# A version number is a name, but only in context ("iOS 4.12", "version 7.3", "v2.1");
+# a bare decimal such as "7.9" or "0.018" is always a measurement and must be cited.
+_VERSION = re.compile(
+    r"\b(?:version|v|ios|android|release)\s*(\d+\.\d+(?:\.\d+)?)\b", re.IGNORECASE)
 
 
 def _numbers(text: str) -> list[tuple[float, str | None, str]]:
-    versions = {m.group(0) for m in _VERSION.finditer(text)}
+    version_spans = [m.span(1) for m in _VERSION.finditer(text)]
     out = []
     for m in _NUMBER.finditer(text):
         raw, unit = m.group(1), m.group(2)
-        if unit is None and raw.lstrip("+-−") in versions:
-            continue  # app versions such as 4.12 are names, not measurements
-        if unit is None and re.fullmatch(r"20\d\d", raw):
-            continue  # years in dates
-        value = float(raw.replace(",", "").replace("−", "-"))
+        if unit is None and any(a <= m.start(1) < b for a, b in version_spans):
+            continue
+        value = float(raw.replace(",", "").replace("\u2212", "-"))
         out.append((value, unit, raw))
     return out
 

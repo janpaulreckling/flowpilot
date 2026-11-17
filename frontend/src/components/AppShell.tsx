@@ -95,7 +95,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <ThemeSwitch />
           </div>
         </div>
-        <nav aria-label="Main" className="overflow-x-auto px-2 pb-2 md:flex-1 md:overflow-visible md:px-3">
+        <nav aria-label="Main" className="overflow-x-auto px-2 pb-2 [mask-image:linear-gradient(to_right,black_80%,transparent)] md:flex-1 md:overflow-visible md:px-3 md:[mask-image:none]">
           <ul className="flex gap-1 md:flex-col">
             {NAV.map((item) => (
               <li key={item.to}>

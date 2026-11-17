@@ -16,7 +16,7 @@ Implements D11 (fixed-horizon frequentist). **Written and committed on 2026-11-1
 4. **Sample size.** Fewer units per arm than planned → **keep testing** (underpowered), with the achieved minimum detectable effect reported.
 5. **Guardrails** (one-sided harm question, **Holm** correction across the experiment's guardrails at α = 0.05). A guardrail is **breached** when its Holm-adjusted p-value for harm is below 0.05. Breach → **don't ship**, whatever the primary metric says.
 6. **Primary metric** (one per experiment, no correction needed):
-   - **ship** — the 95% CI of the difference lies entirely above 0;
+   - **ship** — the 95% CI of the difference lies entirely above 0. Any reliably positive effect without guardrail harm is worth shipping; whether it reaches the MDE is shown beside the verdict, not merged into it. This is how D11's "practical significance via the MDE" is implemented: the MDE drives planning and the equivalence rule below;
    - **don't ship** — the 95% CI lies entirely below 0;
    - **no meaningful effect** — equivalence by TOST at α = 0.05: the **90%** CI lies entirely inside (−MDE, +MDE). The 90% interval is what TOST requires for a 5% error rate; MDE is the pre-registered minimum effect worth acting on;
    - **keep testing** — none of the above (the data cannot tell a meaningful effect from none).

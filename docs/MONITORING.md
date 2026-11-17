@@ -18,6 +18,8 @@ For each mature week *t* and each window *k* ∈ {1 week, 4 weeks pooled} ending
 - **Segments scanned:** each single value of `signup_platform`, `acquisition_channel`, `company_size`. The stricter z threshold accounts for the number of segment tests; the run reports how many tests it made.
 - Declines are alerts; improvements are reported as notices.
 
+- **Experiments inside the baseline:** cohorts in a running experiment are not excluded from baselines or windows. A treatment effect therefore moves the aggregate (E3 raised three retention alerts); this is listed in KNOWN_LIMITATIONS.md.
+
 ## Count metrics (daily)
 
 Monitored: active users (overall and per platform), event volume per (event, platform), sessions per platform.

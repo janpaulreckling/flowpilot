@@ -70,6 +70,7 @@ Changes made after the first run, none to a decision threshold:
 1. **Validator false positives:** digits inside names ("week-4", company size "1-10") were read as measurements. Fixed by ignoring hyphenated tokens and quoting category values.
 2. **Data-quality tool:** the first version compared raw event counts per app version, which mixed the tracking gap with users moving from 7.2 to 7.3 ("other versions −82%"). It now compares **events per session** per version.
 3. A parsing bug for version keys containing a dot.
+4. **Validator gap (found in review):** every unitless decimal was skipped as a "version" and every 20xx integer as a "year", so an invented z-score, p-value or count passed. Versions are now recognized only in context ("iOS 4.12", "version 7.3") and years only inside dates; four regression sentences in `tests/test_investigation.py` must be rejected.
 
 ## LLM agent (built, not yet run against the real API — D30)
 

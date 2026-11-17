@@ -100,6 +100,12 @@ def test_validator_accepts_correctly_cited_numbers() -> None:
     "Activation was 31.0% for these signups.",       # hallucinated number
     "Activation changed by +2.8 pp.",                # wrong sign
     "Activation was 34.4% for 9,999 signups.",       # one invented count
+    # Regression (review finding): bare decimals and 20xx integers were skipped as
+    # "versions" and "years", so these passed without evidence.
+    "The z-score was 7.9 for iOS.",
+    "Events per session fell from 4.1 to 2.3 on Android 7.3.",
+    "p = 0.018 for the guardrail.",
+    "We saw 2031 new signups that week.",
 ])
 def test_validator_rejects_numbers_without_matching_evidence(text: str) -> None:
     log = _log_with({"rate": 0.344, "diff_pp": -2.79})
