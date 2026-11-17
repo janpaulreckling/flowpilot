@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ChevronRight, Sparkles, Wrench } from 'lucide-react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { ConfidenceLabel, StatusChip } from '@/components/Chips'
 import { DecisionForm } from '@/components/DecisionForm'
 import { ClaimText, EvidenceProvider, EvidenceRef } from '@/components/EvidenceRef'
+import { TourHint } from '@/components/GuidedTour'
 import { Empty, ErrorState, Loading } from '@/components/States'
+import { StatusNote } from '@/components/StatusNote'
 import { SERIES_COLORS, TrendChart, toPoints } from '@/components/TrendChart'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -166,6 +168,7 @@ function InvestigationView({ record }: { record: InvestigationRecord }) {
 
 export function AlertPage() {
   const { alertId = '' } = useParams()
+  const [search] = useSearchParams()
   const qc = useQueryClient()
   const alerts = useQuery({ queryKey: ['alerts'], queryFn: api.alerts })
   const caps = useQuery({ queryKey: ['capabilities'], queryFn: api.capabilities })
@@ -214,6 +217,9 @@ export function AlertPage() {
         <p className="text-sm text-muted-foreground">Cohorts {periodText(a.first_period_start, a.last_period_end)}</p>
       </header>
 
+      {search.get('tour') === '1' && <TourHint />}
+      <StatusNote llmEnabled={llm} />
+
       {a.kind === 'rate' && <AlertTrend alert={a} />}
 
       <section className="flex flex-wrap items-center gap-3">
@@ -231,12 +237,11 @@ export function AlertPage() {
             </span>
           </TooltipTrigger>
           {!llm && (
-            <TooltipContent>Not enabled: the AI agent needs an API key on the server.</TooltipContent>
+            <TooltipContent>Not enabled: the AI agent needs an API key on the server (see the note above).</TooltipContent>
           )}
         </Tooltip>
         {run.isPending && <span role="status" className="text-sm text-muted-foreground">Investigating…</span>}
         {run.isError && <span role="alert" className="text-sm text-destructive">{run.error.message}</span>}
-        {DEMO && <span className="text-sm text-muted-foreground">Static demo: investigations shown are recorded runs.</span>}
       </section>
 
       {ids.isPending || (latest && record.isPending) ? (

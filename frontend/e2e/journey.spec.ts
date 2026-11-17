@@ -18,7 +18,14 @@ test('incident to investigation with evidence', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Decision Center' })).toBeVisible()
   const lead = page.getByRole('link', { name: /Activation rate fell \(Platform iOS\)/ })
   await expect(lead).toContainText('1-week window')
-  await lead.click()
+  // Guided start: step 1 opens the iOS incident.
+  await expect(page.getByRole('heading', { name: /Start with the iOS case/ })).toBeVisible()
+  await page.getByRole('link', { name: 'Start with step 1' }).click()
+  await expect(page.getByRole('note')).toContainText('Step 2 of 3')
+  // What the reader is looking at is stated in the page, not hidden in a tooltip.
+  const status = page.getByRole('complementary', { name: 'About this page' })
+  await expect(status).toContainText('recorded results')
+  await expect(status).toContainText('not yet been evaluated against a real model')
   await expect(page.getByRole('heading', { level: 2, name: /iOS 4\.12 signups at the 'invite sent' step/ })).toBeVisible()
   await expect(page.getByText('Rule-based analysis (no LLM)')).toBeVisible()
   await page.getByRole('button', { name: /^Show evidence E-/ }).first().click()

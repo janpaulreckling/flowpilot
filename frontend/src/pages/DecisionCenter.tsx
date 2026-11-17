@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowRight } from 'lucide-react'
 import { Link } from 'react-router'
 import { StatusChip, VerdictChip } from '@/components/Chips'
+import { GuidedTour } from '@/components/GuidedTour'
 import { Empty, ErrorState, Loading, PageHeader, SectionTitle } from '@/components/States'
 import { api, type Incident } from '@/lib/api'
 import { addDays, formatPp } from '@/lib/format'
@@ -63,6 +64,8 @@ export function DecisionCenter() {
       >
         <p className="text-muted-foreground">What needs your judgment: alerts, investigations and experiment verdicts.</p>
       </PageHeader>
+
+      {lead && lead.kind === 'metric' && <GuidedTour alertId={lead.lead.alert.alert_id} />}
 
       <section>
         <SectionTitle count={open.length}>Open incidents</SectionTitle>
