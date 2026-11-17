@@ -1,6 +1,6 @@
-# Design Blueprint (Phase 3 — draft for approval)
+# Design Blueprint (Phase 3)
 
-Status: **draft**. Builds on D1–D15 in [DECISIONS.md](DECISIONS.md), especially D10 (lead with analyst judgment).
+Status: **approved 2026-11-17** (D16–D18). Builds on D1–D15 in [DECISIONS.md](DECISIONS.md), especially D10 (lead with analyst judgment).
 
 ## 1. Navigation
 

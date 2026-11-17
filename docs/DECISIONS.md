@@ -87,3 +87,19 @@ The model stays a configuration value. Until Phase 7 no API key is needed; the r
 ## D15 — Technical blueprint approved (2026-11-17, approved)
 
 [TECHNICAL_BLUEPRINT.md](TECHNICAL_BLUEPRINT.md) is the agreed architecture: read-only DuckDB analytics store plus SQLite workflow state, YAML metric registry, typed read-only agent tools with evidence validation and a rule-based fallback, the testing strategy, local run plus static demo, and the cut line.
+
+## D16 — Visual direction: analyst memo (2026-11-17, approved)
+
+Calm, editorial look: Inter for UI, a serif for report headings, tabular numerals, generous whitespace; investigations read like a decision memo with footnoted evidence. Light and dark mode.
+
+- **Rejected:** ops console (dense dark panels; hard to read long reports, looks like many monitoring tools); clean SaaS cards (looks like a template).
+
+## D17 — Landing page: Decision Center (2026-11-17, approved)
+
+The app opens on the inbox of open alerts, investigations and pending decisions, so the detect → investigate → decide workflow is the first thing a visitor sees.
+
+- **Rejected:** overview dashboard first (makes FlowPilot look like one more dashboard).
+
+## D18 — UI building blocks: shadcn/ui + Recharts (2026-11-17, approved)
+
+- **Rejected:** Tremor (recognizable default look); MUI (heavy, strong Material look).
