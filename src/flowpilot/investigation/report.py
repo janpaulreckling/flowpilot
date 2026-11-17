@@ -67,7 +67,7 @@ class ValidationIssue(BaseModel):
 
 # Numbers as shown in claims: "−2.8 pp", "+3.4 pp", "34.4%", "1,573", "4.12" (versions are
 # excluded below). Unicode minus and ASCII hyphen are both accepted.
-_NUMBER = re.compile(r"(?<![\w.\-\u2212])([+\-\u2212]?\d[\d,]*(?:\.\d+)?)\s*(pp|%)?")
+_NUMBER = re.compile(r"(?<![\w.\-\u2212])([+\-\u2212]?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(pp|%)?")
 # A version number is a name, but only in context ("iOS 4.12", "version 7.3", "v2.1");
 # a bare decimal such as "7.9" or "0.018" is always a measurement and must be cited.
 _VERSION = re.compile(
@@ -171,7 +171,12 @@ _QUOTED = re.compile(r"'([^']*)'")
 QUOTED_NAMES = {"1-10", "11-50", "51-200", "project created", "invite sent", "teammate joined"}
 
 
+# A year after "in", "since", ... ("In 2026, activation fell") names a period.
+_YEAR = re.compile(r"\b(in|since|during|until|through|of)\s+(?:19|20)\d{2}\b(?!\s*(?:%|pp|\.\d))",
+                   re.IGNORECASE)
+
+
 def _strip_dates(text: str) -> str:
-    """Remove calendar dates (they name periods) and quoted category names."""
-    text = _DATE.sub("", text)
+    """Remove calendar dates and years (they name periods) and quoted category names."""
+    text = _YEAR.sub(lambda m: m.group(1), _DATE.sub("", text))
     return _QUOTED.sub(lambda m: "" if m.group(1) in QUOTED_NAMES else m.group(1), text)

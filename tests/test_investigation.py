@@ -121,6 +121,24 @@ def test_validator_rejects_numbers_without_matching_evidence(text: str) -> None:
     assert validate(_report(claim), log)
 
 
+@pytest.mark.parametrize("text", [
+    "iOS 4.12 shipped on 2026-10-26.",
+    "In 2026, activation fell.",
+    "Signups from October 26, 2026 to November 8 were affected.",
+    "Since 2025 the invite step has been stable.",
+])
+def test_validator_does_not_read_dates_or_years_as_measurements(text: str) -> None:
+    # Regression (review finding F21): years inside dates cost the agent needless retries.
+    assert validate(_report(Claim(text=text)), _log_with({})) == []
+
+
+def test_numbers_do_not_swallow_a_trailing_comma() -> None:
+    log = _log_with({"n": 1573})
+    claim = Claim(text="We saw 1,573, mostly on iOS.",
+                  citations=[Citation(evidence_id="E-1", fact="n")])
+    assert validate(_report(claim), log) == []
+
+
 def test_validator_rejects_unknown_evidence_and_facts() -> None:
     log = _log_with({"rate": 0.344})
     claim = Claim(text="Activation was 34.4%.",
