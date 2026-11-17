@@ -77,3 +77,9 @@ Trailing-baseline bands plus a practical threshold and a minimum sample, followe
 ## D13 — Metric layer: own YAML registry compiled to SQL (2026-11-17, approved)
 
 - **Rejected:** dbt plus registry (more moving parts; dbt is already shown in cash-reconciliation-engine).
+
+## D14 — LLM model choice deferred to Phase 7 (2026-11-17, approved)
+
+The model stays a configuration value. Until Phase 7 no API key is needed; the rule-based investigator carries the workflow. The model is chosen in Phase 7 from measured cost and quality per run. Agent runs are billed through Anthropic API credits, with a per-run cost cap in code and a spend limit on the account.
+
+- **Options on the table:** Claude Opus 5.5 with a cost cap; Sonnet 5.5 for development and Opus 5.5 for recorded demo runs.

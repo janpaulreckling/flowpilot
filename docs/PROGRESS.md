@@ -6,4 +6,4 @@
 - Phase 1 (product blueprint) approved: [PRODUCT_BLUEPRINT.md](PRODUCT_BLUEPRINT.md), plus D7 (name Tasklane), D8 (demo story), D9 (checkpoint review).
 
 ## Next
-- Phase 2 technical blueprint drafted ([TECHNICAL_BLUEPRINT.md](TECHNICAL_BLUEPRINT.md)); D10–D13 approved (positioning, experiment statistics, anomaly detection, metric layer); LLM model choice open.
+- Phase 2 technical blueprint drafted ([TECHNICAL_BLUEPRINT.md](TECHNICAL_BLUEPRINT.md)); D10–D13 approved (positioning, experiment statistics, anomaly detection, metric layer); LLM model choice deferred to Phase 7 (D14).

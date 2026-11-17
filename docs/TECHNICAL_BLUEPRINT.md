@@ -1,6 +1,6 @@
 # Technical Blueprint (Phase 2 — draft for approval)
 
-Status: **draft**; §4–§6 approved as D11–D13, model choice open. Builds on D1–D13 in [DECISIONS.md](DECISIONS.md). Items marked **[decision]** need product-owner approval.
+Status: **draft**; §4–§6 approved as D11–D13, model choice deferred to Phase 7 (D14). Builds on D1–D13 in [DECISIONS.md](DECISIONS.md). Items marked **[decision]** need product-owner approval.
 
 ## 1. Architecture at a glance
 
