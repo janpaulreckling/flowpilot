@@ -20,6 +20,14 @@ from flowpilot.experiments.stats import (
 )
 from flowpilot.metrics.engine import MetricEngine
 
+MINUS = "\u2212"
+
+
+def _pp(v: float) -> str:
+    s = f"{abs(v) * 100:.1f}"
+    return f"{MINUS if v < 0 and float(s) else '+'}{s} pp"
+
+
 SRM_ALPHA = 0.001
 EXPOSURE_ALPHA = 0.001
 GUARDRAIL_ALPHA = 0.05
@@ -134,6 +142,7 @@ def analyze(
     achieved = (detectable_effect(primary.control.rate, smallest_arm)
                 if primary and smallest_arm else None)
 
+    label = engine.definition(primary_metric).label
     verdict: Verdict
     if not decision_grade:
         verdict = "not_decision_grade"
@@ -154,22 +163,22 @@ def analyze(
         for g in guardrails:
             if g.breached and g.comparison is not None and g.holm_p_harm is not None:
                 rationale.append(
-                    f"Guardrail {g.metric} breached: {g.comparison.diff * 100:+.1f} pp "
-                    f"(Holm-adjusted p = {g.holm_p_harm:.3f}).")
+                    f"Guardrail {engine.definition(g.metric).label.lower()} breached: "
+                    f"{_pp(g.comparison.diff)} (Holm-adjusted p = {g.holm_p_harm:.3f}).")
     elif primary is None:  # unreachable: decision_grade requires a primary result
         verdict = "not_decision_grade"
     elif primary.ci95[0] > 0:
         verdict = "ship"
-        rationale.append(f"{primary_metric} improved by {primary.diff * 100:+.1f} pp; the 95% CI "
-                         f"[{primary.ci95[0] * 100:+.1f}, {primary.ci95[1] * 100:+.1f}] pp "
+        rationale.append(f"{label} improved by {_pp(primary.diff)}; the 95% interval "
+                         f"[{_pp(primary.ci95[0])}, {_pp(primary.ci95[1])}] "
                          "excludes zero, and no guardrail was breached.")
     elif primary.ci95[1] < 0:
         verdict = "dont_ship"
-        rationale.append(f"{primary_metric} got worse: 95% CI entirely below zero.")
+        rationale.append(f"{label} got worse: the 95% interval lies entirely below zero.")
     elif -mde < primary.ci90[0] and primary.ci90[1] < mde:
         verdict = "no_meaningful_effect"
-        rationale.append(f"The 90% CI [{primary.ci90[0] * 100:+.1f}, {primary.ci90[1] * 100:+.1f}]"
-                         f" pp lies inside ±{mde * 100:.1f} pp (the MDE): any effect is too small"
+        rationale.append(f"The 90% interval [{_pp(primary.ci90[0])}, {_pp(primary.ci90[1])}]"
+                         f" lies inside ±{mde * 100:.1f} pp (the MDE): any effect is too small"
                          " to matter (equivalence, TOST at 5%).")
     else:
         verdict = "keep_testing"

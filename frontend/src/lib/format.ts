@@ -32,3 +32,14 @@ export function formatWeek(isoMonday: string): string {
   const d = new Date(`${isoMonday}T00:00:00Z`)
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
 }
+
+/** ISO date plus n days (UTC). */
+export function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+export function formatP(p: number): string {
+  return p < 0.001 ? 'p < 0.001' : `p = ${p.toFixed(3)}`
+}

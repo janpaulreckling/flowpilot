@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router'
-import { fetchDataset } from '@/lib/api'
+import { api } from '@/lib/api'
 import { formatCount } from '@/lib/format'
 import { applyTheme, readPreference, savePreference, type ThemePreference } from '@/lib/theme'
 
@@ -63,7 +63,7 @@ function ThemeSwitch() {
 }
 
 function DatasetFooter() {
-  const q = useQuery({ queryKey: ['dataset'], queryFn: fetchDataset, retry: false })
+  const q = useQuery({ queryKey: ['dataset'], queryFn: api.dataset, retry: false })
   if (q.isPending) return <p className="text-xs text-muted-foreground">Loading dataset…</p>
   if (q.isError)
     return (

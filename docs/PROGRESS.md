@@ -48,8 +48,13 @@
 - API: `POST /api/alerts/{id}/investigate?mode=llm` (409 without a key), `GET /api/capabilities`.
 - Tested with a scripted model; no real-model run yet (needs the product owner's API key). 111 pytest tests.
 
+## 2026-11-17 — Phase 8: full UI on the real API
+- D31 Phase 7 approved. API additions: human decisions (note required, subject must exist; a decided alert becomes "Decided"), ground truth for the data page.
+- Frontend rebuilt on the API (prototype content removed): Decision Center (open alerts, ready investigations, experiments awaiting a decision, decisions, collapsed improvement notices), alert page with trend, investigation report with evidence panel and decision form, rule-based and AI buttons (AI disabled without a key), experiment list and detail (verdict, rationale, integrity, interval plot vs MDE, guardrails, decision), Overview (KPI tiles, platform filter, trends), Funnels & Retention, Metrics catalog, About the data with scenario reveal. Static-demo mode prepared in the API client (VITE_DEMO).
+- Verified: tsc, oxlint, 7 Vitest tests, production build; browser check of every page at desktop and phone width, light and dark, no horizontal overflow, no console errors on the checked pages. Backend 112 pytest tests.
+
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Product-owner feedback on the design prototype.
-- Product-owner approval of Phase 7; real LLM runs when an API key exists.
-- Phase 8: full frontend on the real API.
+- Product-owner design and usability feedback on the full UI.
+- Phase 9: independent quality review. Phase 10: static demo snapshot, Playwright journey, README, publishing (needs approval).
