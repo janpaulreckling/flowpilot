@@ -171,3 +171,7 @@ The full agent loop is built and tested with a scripted model (no cost). Real ru
 ## D31 — Phase 7 approved (2026-11-17, approved)
 
 Tools, evidence validator, rule-based investigator and the LLM agent loop as built. Next: Phase 8, the full UI on the real API.
+
+## D32 — Phase 8 approved (2026-11-17, approved)
+
+Full UI on the real API as built. Next: Phase 9, an independent quality review; findings are prioritized and presented before any change.
