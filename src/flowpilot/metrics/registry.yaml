@@ -1,0 +1,120 @@
+# The single source of metric definitions (D13, docs/METRICS.md). Pages, the monitor and the
+# investigation tools read metrics only through this registry.
+#
+# kinds:
+#   cohort_rate      share of signups (owners) in a signup cohort meeting `numerator`
+#   cohort_count     number of signups in a cohort
+#   trial_conversion share of ended trials converting to the paid Team plan
+#   active_users     distinct users with a core action (D25) per day or week
+#   stickiness       mean daily active users in a week / weekly active users
+#   feature_adoption users with `event` / active users, on the platforms where it exists
+#   event_volume     raw event counts per day (data quality)
+#   session_volume   sessions per day (data quality)
+#
+# `lag_days`: last day after a cohort member's signup date that the metric needs. A cohort is
+# complete only when that day is inside the data for its latest signup date.
+
+cohort_dimensions: [signup_platform, signup_app_version, acquisition_channel, company_size, country]
+
+metrics:
+  signups:
+    label: Signups
+    description: New workspaces created through self-serve signup.
+    kind: cohort_count
+    unit: workspace
+    lag_days: 0
+
+  activation_rate:
+    label: Activation rate
+    description: >-
+      Share of signups that created a project and whose workspace gained a teammate who
+      joined, both within 7 days of signup.
+    kind: cohort_rate
+    unit: signup
+    numerator: >-
+      project_at < signup_at + INTERVAL 7 DAY
+      AND first_teammate_at < signup_at + INTERVAL 7 DAY
+    lag_days: 7
+
+  project_rate:
+    label: Project created (7 days)
+    description: Share of signups that created a project within 7 days (funnel step 1).
+    kind: cohort_rate
+    unit: signup
+    numerator: project_at < signup_at + INTERVAL 7 DAY
+    lag_days: 7
+
+  week1_retention:
+    label: Week-1 retention
+    description: Share of signups with a core action on days 7-13 after signup (D26).
+    kind: cohort_rate
+    unit: signup
+    retention_week: 1
+    lag_days: 13
+
+  week2_retention:
+    label: Week-2 retention
+    description: Share of signups with a core action on days 14-20 after signup (D26).
+    kind: cohort_rate
+    unit: signup
+    retention_week: 2
+    lag_days: 20
+
+  week4_retention:
+    label: Week-4 retention
+    description: Share of signups with a core action on days 28-34 after signup (D26).
+    kind: cohort_rate
+    unit: signup
+    retention_week: 4
+    lag_days: 34
+
+  trial_to_paid:
+    label: Trial to paid
+    description: Share of workspaces whose 14-day trial ended that moved to the paid Team plan.
+    kind: trial_conversion
+    unit: workspace
+    lag_days: 14
+
+  active_users:
+    label: Active users
+    description: Distinct users with at least one core action (D25); DAU per day, WAU per week.
+    kind: active_users
+    unit: user
+    dimensions: [platform]
+
+  stickiness:
+    label: Stickiness (DAU/WAU)
+    description: Mean daily active users of a week divided by that week's active users.
+    kind: stickiness
+    unit: user
+    dimensions: [platform]
+
+  timeline_adoption:
+    label: Timeline view adoption
+    description: Active web users who used the Timeline view (it exists on web only).
+    kind: feature_adoption
+    unit: user
+    event: timeline_viewed
+    platforms: [web]
+
+  integration_usage:
+    label: Integration usage
+    description: Active users who used a connected integration.
+    kind: feature_adoption
+    unit: user
+    event: integration_used
+    platforms: [web, ios, android]
+
+  event_volume:
+    label: Event volume
+    description: Tracked events per day, for data-quality monitoring.
+    kind: event_volume
+    unit: event
+    dimensions: [event_name, platform]
+
+  session_volume:
+    label: Sessions
+    description: Sessions per day, for data-quality monitoring.
+    kind: session_volume
+    unit: session
+    dimensions: [platform]

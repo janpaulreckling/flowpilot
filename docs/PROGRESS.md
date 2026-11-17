@@ -21,7 +21,14 @@
 - Prototype screens (D22): Decision Center and the investigation report for alert A-0142 with evidence side panel, chart with direct labels and table view, decision form requiring a note. Sample content is labeled in the UI.
 - Verified: frontend typecheck, lint, 6 Vitest tests, production build; checked in a browser at desktop and phone width, light and dark, no console errors. Backend: 44 pytest tests.
 
+## 2026-11-17 — Phase 5 analytics engine (core)
+- Derived tables in the build step (`owner_cohort`, `user_active_days`, `trial_outcomes`, daily volumes).
+- Metric layer: YAML registry (13 metrics) compiled to parameterized SQL; completeness flags, undefined (not zero) empty periods, dimension whitelist; onboarding funnel.
+- Independent pure-Python reference implementation from the raw Parquet files; mutation checks confirmed the tests catch a wrong activation window and a wrong retention window.
+- Anomaly monitor per `docs/MONITORING.md` (parameters committed before the first run); evaluation in a separate module that alone reads the ground truth. Measured: S1, S2, S5 detected; 1 false decline alert; 58 improvement notices (see MONITORING.md).
+- Gates: ruff, mypy strict, 62 pytest tests.
+
 ## Next
 - Scenario catalog frozen (D19, [DATA_SCENARIOS.md](DATA_SCENARIOS.md)); data volume about 2,500 new workspaces per week (D20).
 - Product-owner feedback on the design prototype.
-- Phase 5 analytics engine: YAML metric registry, KPIs, funnels, cohorts, segments, anomaly monitor, validated against ground truth.
+- Phase 5 remainder: API endpoints for metrics, funnel and alerts; alerts persisted to app state.

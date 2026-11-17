@@ -13,10 +13,6 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from flowpilot.generator.config import WorldConfig
-from flowpilot.generator.simulate import simulate
-from flowpilot.warehouse.build import build_database, write_raw
-
 # One row per founder: activation funnel within 7 days and weekly retention flags.
 FOUNDERS = """
 WITH founders AS (
@@ -56,15 +52,12 @@ f AS (
 
 
 @pytest.fixture(scope="module")
-def full(tmp_path_factory: pytest.TempPathFactory) -> Iterator[duckdb.DuckDBPyConnection]:
-    root: Path = tmp_path_factory.mktemp("full")
-    write_raw(simulate(WorldConfig()), root / "raw")
-    build_database(root / "raw", root / "db.duckdb")
+def full(full_world: Path) -> Iterator[duckdb.DuckDBPyConnection]:
     # In-memory session with the store attached read-only, so the founder view can be
     # materialized once for all checks without write access to the store.
     con = duckdb.connect()
     con.execute("SET TimeZone = 'UTC'")
-    con.execute(f"ATTACH '{root / 'db.duckdb'}' AS store (READ_ONLY)")
+    con.execute(f"ATTACH '{full_world}' AS store (READ_ONLY)")
     con.execute("USE store")
     con.execute(f"CREATE TABLE memory.main.f AS {FOUNDERS} SELECT * FROM f")
     yield con

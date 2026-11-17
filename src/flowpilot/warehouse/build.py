@@ -39,6 +39,8 @@ def build_database(raw_dir: Path, db_path: Path) -> dict[str, int]:
             con.execute(f"INSERT INTO {name} SELECT * FROM read_parquet(?)", [str(path)])
             row = con.execute(f"SELECT count(*) FROM {name}").fetchone()
             counts[name] = int(row[0]) if row else 0
+        derived = resources.files("flowpilot.warehouse").joinpath("derived.sql").read_text()
+        con.execute(derived)
         truth = json.loads((raw_dir / "ground_truth.json").read_text())
         info = {
             "synthetic": "true",

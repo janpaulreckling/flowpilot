@@ -37,3 +37,12 @@ def con(world: World) -> Iterator[duckdb.DuckDBPyConnection]:
     c = connect_read_only(world.db_path)
     yield c
     c.close()
+
+
+@pytest.fixture(scope="session")
+def full_world(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The default full-scale dataset (about 10 s to build), shared by slow tests."""
+    root = tmp_path_factory.mktemp("full")
+    write_raw(simulate(WorldConfig()), root / "raw")
+    build_database(root / "raw", root / "db.duckdb")
+    return root / "db.duckdb"
