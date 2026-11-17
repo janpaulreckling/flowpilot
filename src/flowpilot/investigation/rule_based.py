@@ -224,7 +224,7 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
                     text=f"In the onboarding funnel, {who} signups reach '{STEP_NAMES[step]}' at "
                          f"{rate(fact(ev_f, f'{step}.segment_rate') or 0)}, against "
                          f"{rate(fact(ev_f, f'{step}.rest_rate') or 0)} for everyone else. "
-                         f"Compared with the gap before, that step lost {pp(known[step])}; the "
+                         f"Against the gap before, that step moved by {pp(known[step])}; the "
                          "other steps moved by "
                          + " and ".join(pp(known[k]) for k in other) + ".",
                     citations=cite(ev_f, f"{step}.segment_rate", f"{step}.rest_rate",
