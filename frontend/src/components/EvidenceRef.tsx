@@ -1,10 +1,25 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useRef, useState, type ReactNode } from 'react'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import type { Claim, Evidence } from '@/lib/api'
 
 interface EvidenceCtx {
   items: Evidence[]
   open: (id: string) => void
+}
+
+// What each read-only tool does, in plain language (shown before the technical details).
+const TOOL_TEXT: Record<string, string> = {
+  get_alert: 'Read the alert that started this investigation.',
+  get_metric_definition: "Looked up the metric's definition: what is counted, over which window.",
+  compare_periods: 'Compared the metric in the alert period with the weeks before.',
+  segment_breakdown: 'Split the change by segment and tested whether one segment moved differently from the rest.',
+  funnel: "Compared each onboarding step for this segment with everyone else, before and after.",
+  retention_cohorts: 'Read weekly retention for each signup week.',
+  feature_adoption: 'Read how many active users used a feature each week.',
+  get_releases: "Listed the platform's app releases and their dates.",
+  experiment_result: 'Checked running experiments and how much of the change they could explain.',
+  data_quality_report: 'Checked for tracking gaps: events per session by app version, against sessions.',
+  query_metric: 'Queried a metric from the metric catalog.',
 }
 
 const Ctx = createContext<EvidenceCtx | null>(null)
@@ -20,14 +35,37 @@ function factValue(v: number): string {
 }
 
 /** Holds the evidence of one investigation and the side panel that shows one item. */
-export function EvidenceProvider({ items, children }: { items: Evidence[]; children: ReactNode }) {
+export function EvidenceProvider({
+  items,
+  citedBy = {},
+  children,
+}: {
+  items: Evidence[]
+  citedBy?: Record<string, string[]>
+  children: ReactNode
+}) {
   const [selected, setSelected] = useState<string | null>(null)
+  // The panel opens from a footnote, not from a dialog trigger, so remember where the reader
+  // was and return keyboard focus there when it closes.
+  const opener = useRef<HTMLElement | null>(null)
+  const open = (id: string) => {
+    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setSelected(id)
+  }
   const item = items.find((e) => e.evidence_id === selected) ?? null
   return (
-    <Ctx.Provider value={{ items, open: setSelected }}>
+    <Ctx.Provider value={{ items, open }}>
       {children}
       <Sheet open={item !== null} onOpenChange={(o) => !o && setSelected(null)}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetContent
+          className="w-full overflow-y-auto sm:max-w-lg"
+          onCloseAutoFocus={(e) => {
+            if (opener.current) {
+              e.preventDefault()
+              opener.current.focus()
+            }
+          }}
+        >
           {item && (
             <>
               <SheetHeader>
@@ -38,41 +76,59 @@ export function EvidenceProvider({ items, children }: { items: Evidence[]; child
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-5 px-4 pb-6 text-sm">
-                {item.output && <p>{item.output.summary}</p>}
-                {item.error && <p className="text-destructive">Tool error: {item.error}</p>}
-                <section>
-                  <h3 className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">Input</h3>
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-                    {Object.entries(item.input).map(([k, v]) => (
-                      <div key={k} className="contents">
-                        <dt className="font-mono text-muted-foreground">{k}</dt>
-                        <dd className="break-all">{show(v)}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-                {item.output && Object.keys(item.output.facts).length > 0 && (
+                <p className="leading-relaxed">{TOOL_TEXT[item.tool] ?? item.output?.summary}</p>
+                {item.error && <p className="text-destructive">This step failed: {item.error}</p>}
+                {(citedBy[item.evidence_id] ?? []).length > 0 && (
                   <section>
                     <h3 className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      Facts (what claims may cite)
+                      Used for these statements
                     </h3>
-                    <table className="w-full border-collapse tabular-nums">
-                      <tbody>
-                        {Object.entries(item.output.facts).map(([k, v]) => (
-                          <tr key={k} className="border-b border-border/60 last:border-0">
-                            <td className="py-1 pr-4 font-mono text-xs break-all text-muted-foreground">{k}</td>
-                            <td className="py-1 text-right">{factValue(v)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <ul className="list-disc space-y-1 pl-5 leading-relaxed">
+                      {citedBy[item.evidence_id].map((t, i) => (
+                        <li key={i}>{t}</li>
+                      ))}
+                    </ul>
                   </section>
                 )}
-                {item.output_sha256 && (
-                  <p className="font-mono text-xs break-all text-muted-foreground">
-                    sha256 {item.output_sha256}
-                  </p>
-                )}
+                <details className="group rounded-md border border-border px-3 py-2">
+                  <summary className="cursor-pointer rounded font-medium focus-visible:outline-2 focus-visible:outline-ring">
+                    Technical details: inputs, facts, hash
+                  </summary>
+                  <div className="mt-3 space-y-5">
+                    {item.output && <p className="text-muted-foreground">{item.output.summary}</p>}
+                    <section>
+                      <h3 className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">Input</h3>
+                      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                        {Object.entries(item.input).map(([k, v]) => (
+                          <div key={k} className="contents">
+                            <dt className="font-mono text-muted-foreground">{k}</dt>
+                            <dd className="break-all">{show(v)}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </section>
+                    {item.output && Object.keys(item.output.facts).length > 0 && (
+                      <section>
+                        <h3 className="mb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                          Facts (what claims may cite)
+                        </h3>
+                        <table className="w-full border-collapse tabular-nums">
+                          <tbody>
+                            {Object.entries(item.output.facts).map(([k, v]) => (
+                              <tr key={k} className="border-b border-border/60 last:border-0">
+                                <td className="py-1 pr-4 font-mono text-xs break-all text-muted-foreground">{k}</td>
+                                <td className="py-1 text-right">{factValue(v)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </section>
+                    )}
+                    {item.output_sha256 && (
+                      <p className="font-mono text-xs break-all text-muted-foreground">sha256 {item.output_sha256}</p>
+                    )}
+                  </div>
+                </details>
               </div>
             </>
           )}

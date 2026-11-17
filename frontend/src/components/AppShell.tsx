@@ -105,7 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   to={item.to}
                   end={item.to === '/'}
                   className={({ isActive }) =>
-                    `flex items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors ${
+                    `flex items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-ring ${
                       isActive
                         ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                         : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'

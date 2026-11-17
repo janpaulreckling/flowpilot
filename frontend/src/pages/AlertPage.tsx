@@ -10,7 +10,7 @@ import { StatusNote } from '@/components/StatusNote'
 import { SERIES_COLORS, TrendChart, toPoints } from '@/components/TrendChart'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { api, DEMO, type Alert, type InvestigationRecord } from '@/lib/api'
+import { api, DEMO, type Alert, type InvestigationRecord, type Report } from '@/lib/api'
 import { addDays } from '@/lib/format'
 import { alertChange, alertHeadline, metricLabel, peakChange, periodText, segmentText, shortDate, valueLabel } from '@/lib/labels'
 
@@ -56,6 +56,19 @@ function AlertTrend({ alert }: { alert: Alert }) {
   )
 }
 
+function citedBy(r: Report): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  for (const claim of [
+    ...r.summary,
+    ...r.findings.map((f) => f.claim),
+    ...r.hypotheses.map((h) => h.claim),
+    r.recommendation.claim,
+  ]) {
+    for (const id of new Set(claim.citations.map((c) => c.evidence_id))) (out[id] ??= []).push(claim.text)
+  }
+  return out
+}
+
 function InvestigationView({ record }: { record: InvestigationRecord }) {
   const r = record.report
   if (record.status === 'running' || !r) {
@@ -68,7 +81,7 @@ function InvestigationView({ record }: { record: InvestigationRecord }) {
     )
   }
   return (
-    <EvidenceProvider items={record.evidence}>
+    <EvidenceProvider items={record.evidence} citedBy={citedBy(r)}>
       <article className="space-y-8">
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <span className="rounded-full bg-muted px-2 py-0.5">

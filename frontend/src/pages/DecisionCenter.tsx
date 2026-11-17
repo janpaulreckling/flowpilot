@@ -15,7 +15,7 @@ function IncidentCard({ inc, featured = false }: { inc: Incident; featured?: boo
     <li>
       <Link
         to={`/alerts/${a.alert_id}`}
-        className={`group block space-y-2 transition-colors hover:bg-muted/50 ${featured ? 'p-6' : 'px-5 py-4'}`}
+        className={`group block space-y-2 transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring ${featured ? 'p-6' : 'px-5 py-4'}`}
       >
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <StatusChip status={inc.status} />
@@ -109,7 +109,7 @@ export function DecisionCenter() {
               <li key={e.experiment_id}>
                 <Link
                   to={`/experiments/${e.experiment_id}`}
-                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-muted/50"
+                  className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">

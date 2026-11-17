@@ -29,7 +29,7 @@ export function ExperimentsPage() {
             <li key={e.experiment_id}>
               <Link
                 to={`/experiments/${e.experiment_id}`}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-muted/50"
+                className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 transition-colors hover:bg-muted/50 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
               >
                 <div>
                   <div className="flex items-center gap-2">
