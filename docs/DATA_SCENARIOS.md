@@ -49,6 +49,9 @@ A small share of task titles and workspace names contain prompt-injection text (
 
 ## Calibration log
 
+Calibration numbers here count activity as any session and include every assigned workspace, because they check the generator before the metric layer existed. EXPERIMENTS.md and the app use the metric layer (activity = core action, D25; mature cohorts only), so the same effect can read slightly differently there (E3 week-2 retention: −2.9 pp here, −2.2 pp in EXPERIMENTS.md).
+
+
 Scenario parameters were calibrated once, before any monitor or agent code existed, so that the *expected* effect matches the sizes above. Calibration averaged several seeds instead of picking one.
 
 | Parameter | Value | Check |

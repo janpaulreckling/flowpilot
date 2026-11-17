@@ -9,7 +9,7 @@ Honest list of what FlowPilot does not do well yet. Each entry says where it sho
 ## Monitoring
 - **Count monitor lags growth and seasonality.** The same-weekday median of the last four weeks produces many improvement notices (58 in the back-test) when the user base grows or the summer dip ends. Decision D27 keeps the parameters frozen; notices are shown collapsed. ([MONITORING.md](MONITORING.md))
 - **Detection is only as fast as the metric's window.** Activation needs 7 days after the last signup of a cohort week, week-4 retention 34 days; S1 could not be detected before day 14 after the release.
-- **One false decline alert** in the back-test (week-1 retention, paid social, cohort of Jul 20, z 3.5 at the segment threshold).
+- **One false decline alert** in the back-test (week-1 retention, paid social, cohort of Jul 20, z 3.5 at the segment threshold). The segment threshold is a heuristic, not a multiple-comparison correction; each run reports how many chance crossings to expect (0.9 in the back-test).
 - **Experiments move aggregate metrics.** E3's treatment half lowers retention enough to raise three alerts; the monitor does not yet know which cohorts are in running experiments.
 
 ## Experiments
@@ -20,6 +20,11 @@ Honest list of what FlowPilot does not do well yet. Each entry says where it sho
 - **E3's primary effect is not detectable at this sample size:** the true +1.5 pp lift in trial-to-paid comes out at +0.8 pp with a CI spanning zero; the guardrail decides that experiment.
 
 ## Investigations
-- **Concentration favors large segments.** The rule-based investigator calls a change "concentrated" when one segment carries most of it; an evenly spread effect (E3's treatment) can then be attributed to the largest segment. 2 of 9 back-test alerts are scored as failures for this reason (AGENT.md).
+- **Mixed causes are hard to score.** When two causes overlap (E3's treatment and the knock-on of S1 on iOS), the investigator reports both, but the fixed scoring rule counts it as a failure (1 of 7 in v2, METHOD_V2.md). In v1 the concentration rule also blamed the largest segment for evenly spread effects; v2 replaced it with a significance test.
 - **The rule-based investigator follows one fixed playbook.** It does not try dimensions beyond platform, channel and company size, and its recommendations are templates.
-- **The LLM agent is not enabled yet** (D14): API access and the model are still to be decided.
+- **The LLM agent has not been run against a real model yet** (D30). It is built and tested with a scripted model; quality and cost per run are unmeasured.
+- **A tracking gap and a functional break look alike** in event data (events missing, sessions normal). The investigator says so and recommends checking the feature before fixing the tracking.
+- **Data-quality issues are not attached to metric rows.** Retention or activity for an affected platform and period is returned unflagged; the monitor and the investigations carry the warning.
+
+## Experiments (v2)
+- Guardrails use a fixed 1 pp non-inferiority margin for every metric; a product team would set it per metric before the test.

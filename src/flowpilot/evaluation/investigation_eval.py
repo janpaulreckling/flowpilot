@@ -33,9 +33,10 @@ def _status(report: InvestigationReport, name: str) -> str | None:
 
 def score(alert: Alert, report: InvestigationReport) -> Score:
     scenario = attribute(alert) if alert.direction == "decline" else None
+    base = scenario.split(" ")[0] if scenario else None  # partial credit uses the same checks
     t = _text(report)
     checks: dict[str, bool]
-    if scenario == "S1":
+    if base == "S1" and alert.metric == "activation_rate":
         checks = {
             "localized to iOS": "concentrated in signup platform iOS" in t,
             "version 4.12 named": "version 4.12" in t,
@@ -45,24 +46,26 @@ def score(alert: Alert, report: InvestigationReport) -> Score:
             "mix not blamed": _status(report, "Acquisition-channel mix") != "supported",
             "fix and verify": report.recommendation.kind == "fix_and_verify",
         }
-    elif scenario == "S2":
+    elif base == "S2":
         checks = {
             "localized to paid social": "acquisition channel paid social" in t,
             "retention, not onboarding": "not an onboarding problem" in t,
             "conclusion supported": report.conclusion_supported,
         }
-    elif scenario == "S5":
+    elif base == "S5":
         checks = {
             "no behavioral conclusion": not report.conclusion_supported,
             "fix tracking": report.recommendation.kind == "fix_tracking",
             "version 7.3 named": "version 7.3" in t,
         }
-    elif scenario == "E3":
+    elif base == "E3":
         checks = {
             "experiment named": _status(report, "Running experiment") == "supported",
             "not blamed on a segment": not any(
                 "concentrated in" in f.claim.text for f in report.findings),
         }
+    elif base == "S1":  # retention knock-on of S1: localizing to iOS is the right answer
+        checks = {"localized to iOS": "signup platform iOS" in t}
     else:  # unexplained alert: the honest answer is "no reliable conclusion"
         checks = {"no conclusion claimed": not report.conclusion_supported}
     return Score(alert_id=alert.alert_id, scenario=scenario, checks=checks)

@@ -8,6 +8,7 @@ from typing import Literal
 
 import numpy as np
 from pydantic import BaseModel
+from scipy.stats import norm
 
 from flowpilot.experiments.stats import (
     Comparison,
@@ -31,6 +32,7 @@ def _pp(v: float) -> str:
 SRM_ALPHA = 0.001
 EXPOSURE_ALPHA = 0.001
 GUARDRAIL_ALPHA = 0.05
+GUARDRAIL_MARGIN = 0.01  # v2 (M8): a guardrail may lose at most 1 pp
 
 Verdict = Literal["ship", "dont_ship", "no_meaningful_effect", "keep_testing", "invalid",
                   "not_decision_grade"]
@@ -50,6 +52,8 @@ class GuardrailResult(BaseModel):
     comparison: Comparison | None  # None while no cohort is mature for this metric yet
     holm_p_harm: float | None
     breached: bool
+    holm_p_noninferior: float | None = None
+    noninferior: bool | None = None  # shown to lose less than the margin (v2, M8)
 
 
 class ExperimentAnalysis(BaseModel):
@@ -131,11 +135,17 @@ def analyze(
     guard_cmp = [(m, *compare_arms(engine, m, experiment_id, as_of)) for m in guardrail_metrics]
     measurable = [c for _, c, _ in guard_cmp if c is not None]
     adjusted = iter(holm([c.p_harm for c in measurable]))
+    # Non-inferiority: H0 "treatment loses at least the margin", one-sided, Holm-adjusted.
+    ni = iter(holm([float(norm.sf((c.diff + GUARDRAIL_MARGIN) / c.se)) if c.se else 1.0
+                    for c in measurable]))
     guardrails = []
     for metric, c, _ in guard_cmp:
         p = next(adjusted) if c is not None else None
-        guardrails.append(GuardrailResult(metric=metric, comparison=c, holm_p_harm=p,
-                                          breached=p is not None and p < GUARDRAIL_ALPHA))
+        p_ni = next(ni) if c is not None else None
+        guardrails.append(GuardrailResult(
+            metric=metric, comparison=c, holm_p_harm=p,
+            breached=p is not None and p < GUARDRAIL_ALPHA, holm_p_noninferior=p_ni,
+            noninferior=None if p_ni is None else p_ni < GUARDRAIL_ALPHA))
     all_mature = primary_mature and all(m for _, _, m in guard_cmp)
     decision_grade = as_of >= ended and all_mature and primary is not None
     smallest_arm = min(primary.control.units, primary.treatment.units) if primary else 0
@@ -165,6 +175,14 @@ def analyze(
                 rationale.append(
                     f"Guardrail {engine.definition(g.metric).label.lower()} breached: "
                     f"{_pp(g.comparison.diff)} (Holm-adjusted p = {g.holm_p_harm:.3f}).")
+    elif any(g.noninferior is False for g in guardrails):
+        verdict = "keep_testing"
+        for g in guardrails:
+            if g.noninferior is False:
+                rationale.append(
+                    f"Guardrail {engine.definition(g.metric).label.lower()} cannot yet be shown "
+                    f"to lose less than {GUARDRAIL_MARGIN * 100:.0f} pp (Holm-adjusted "
+                    f"non-inferiority p = {g.holm_p_noninferior:.3f}).")
     elif primary is None:  # unreachable: decision_grade requires a primary result
         verdict = "not_decision_grade"
     elif primary.ci95[0] > 0:

@@ -50,3 +50,6 @@ Decline alerts not caused by an injected anomaly scenario:
 - **1 unexplained (false alarm)**: week-1 retention of paid-social signups, cohort week of Jul 20 (z 3.5, at the segment threshold).
 
 Improvement notices: 58, almost all from the count monitor (47 event volume, 8 active users, 3 sessions), concentrated in September (32) and July–August (22). Cause: the user base grows and the summer dip ends on Sep 1; a same-weekday median of the last four weeks lags both. No count series raised a false **decline** alert. The parameters above were not changed after this run.
+
+
+> **v2:** the standard error and the segment-scan wording changed after an independent review; see [METHOD_V2.md](METHOD_V2.md) for the rules and the before/after results. The numbers above are v1.

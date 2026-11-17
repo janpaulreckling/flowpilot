@@ -25,8 +25,10 @@ from flowpilot.monitor.detect import Alert
 
 BASELINE_WEEKS = 8
 DIMENSIONS = ("signup_platform", "acquisition_channel", "company_size")
-LOCALIZED_SHARE = 0.6
+LEAD_Z = 3.0  # v2 (M3): segment change vs rest change
 LOCALIZED_RATIO = 2.0
+VERSION_Z = 3.0  # v2 (M5)
+EXPERIMENT_SHARE = 0.25  # v2 (M6): share of the observed change an experiment must explain
 STEP_DROP_PP = 5.0
 OTHER_STEPS_PP = 2.0
 ACTIVATION_STABLE_PP = 2.0
@@ -139,17 +141,17 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
     # Where is the change? One breakdown per dimension; the most concentrated one leads.
     breakdowns = {dim: run.call("segment_breakdown", metric=m, dimension=dim, **period)
                   for dim in DIMENSIONS}
-    scored = [(fact(ev, "lead_share") or 0.0, dim, ev) for dim, ev in breakdowns.items()
+    scored = [(fact(ev, "lead_z") or 0.0, dim, ev) for dim, ev in breakdowns.items()
               if ev.output and ev.output.data.get("lead_segment") is not None]
     localized = False
     lead_dim = lead_seg = version = step = None
     lead_ev: Evidence | None = None
     if scored:
-        share, lead_dim, lead_ev = max(scored, key=lambda x: x[0])
+        lead_z, lead_dim, lead_ev = max(scored, key=lambda x: x[0])
         lead_seg = str(lead_ev.output.data["lead_segment"]) if lead_ev.output else None
         lead_diff = fact(lead_ev, "lead_diff_pp") or 0.0
         others = fact(lead_ev, "others_diff_pp") or 0.0
-        localized = (share >= LOCALIZED_SHARE and
+        localized = (lead_z >= LEAD_Z and
                      abs(lead_diff) >= LOCALIZED_RATIO * abs(others) and
                      (lead_diff < 0) == down)
         if localized and lead_seg is not None:
@@ -174,7 +176,12 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
             lead_diff = fact(lead_ev, "lead_diff_pp") or 0.0
             carries = v_diff <= VERSION_SHARE * lead_diff if down else (
                 v_diff >= VERSION_SHARE * lead_diff)
-            if carries:
+            r_v, n_v = worst["current_rate"], worst["current_n"]
+            n_pb = fact(lead_ev, f"{lead_seg}.baseline_n") or 0.0
+            v_se = (r_v * (1 - r_v) / n_v + platform_base * (1 - platform_base)
+                    / max(n_pb, 1.0)) ** 0.5
+            v_z = (v_diff / 100) / v_se * (-1 if down else 1) if v_se else 0.0
+            if carries and v_z >= VERSION_Z:
                 version = str(worst["segment"])
                 ev_rel = run.call("get_releases", platform=lead_seg)
                 released = next((r["released_on"] for r in (ev_rel.output.data["releases"]
@@ -198,8 +205,13 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
 
     # Funnel step for activation alerts.
     if localized and m == "activation_rate" and seg_filter:
-        ev_f = run.call("funnel", current_start=cur_s, current_end=cur_e, segment=seg_filter)
-        gaps = {k: fact(ev_f, f"{k}.gap_pp") for k in STEP_NAMES}
+        # v2 (M4): difference in differences against the baseline period; a new version is
+        # compared with its platform before the release.
+        ev_f = run.call("funnel", current_start=cur_s, current_end=cur_e, segment=seg_filter,
+                        baseline_start=base_s, baseline_end=base_e,
+                        baseline_segment={lead_dim: [lead_seg]} if lead_dim and lead_seg
+                        else None)
+        gaps = {k: fact(ev_f, f"{k}.did_pp") for k in STEP_NAMES}
         known = {k: v for k, v in gaps.items() if v is not None}
         if known:
             pick = min if down else max
@@ -211,18 +223,21 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
                 findings.append(Finding(confidence="supported", claim=Claim(
                     text=f"In the onboarding funnel, {who} signups reach '{STEP_NAMES[step]}' at "
                          f"{rate(fact(ev_f, f'{step}.segment_rate') or 0)}, against "
-                         f"{rate(fact(ev_f, f'{step}.rest_rate') or 0)} for everyone else "
-                         f"({pp(known[step])}); the other steps differ by "
+                         f"{rate(fact(ev_f, f'{step}.rest_rate') or 0)} for everyone else. "
+                         f"Compared with the gap before, that step lost {pp(known[step])}; the "
+                         "other steps moved by "
                          + " and ".join(pp(known[k]) for k in other) + ".",
                     citations=cite(ev_f, f"{step}.segment_rate", f"{step}.rest_rate",
-                                   *(f"{k}.gap_pp" for k in [step, *other])))))
+                                   *(f"{k}.did_pp" for k in [step, *other])))))
             else:
                 step = None
 
     # Retention alerts: is it onboarding or what happens after?
     if localized and m.endswith("retention") and seg_filter:
-        ev_act = run.call("compare_periods", metric="activation_rate", filters=seg_filter,
-                          **period)
+        # Compare on the lead segment itself: a new app version has no baseline period.
+        ev_act = run.call("compare_periods", metric="activation_rate",
+                          filters={lead_dim: [lead_seg]} if lead_dim and lead_seg
+                          else seg_filter, **period)
         act_diff = fact(ev_act, "diff_pp")
         if act_diff is not None and abs(act_diff) < ACTIVATION_STABLE_PP:
             findings.append(Finding(confidence="supported", claim=Claim(
@@ -232,8 +247,14 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
 
     # Competing explanation: experiments running on these cohorts.
     ev_x = run.call("experiment_result", metric=m, start=cur_s, end=cur_e)
-    harmful = [x for x in (ev_x.output.data["experiments"] if ev_x.output else [])
-               if (x["p_harm"] < 0.05 if down else x["p_two_sided"] < 0.05 and x["diff_pp"] > 0)]
+    significant = [x for x in (ev_x.output.data["experiments"] if ev_x.output else [])
+                   if (x["p_harm"] < 0.05 if down else
+                       x["p_two_sided"] < 0.05 and x["diff_pp"] > 0)]
+    # v2 (M6): an experiment explains the change only if it can account for enough of it.
+    harmful = [x for x in significant
+               if (x["expected_contribution_pp"] < 0) == down
+               and abs(x["expected_contribution_pp"]) >= EXPERIMENT_SHARE * abs(diff)]
+    minor = [x for x in significant if x not in harmful]
 
     # ---- hypotheses ---------------------------------------------------------------------
     others_diff = fact(lead_ev, "others_diff_pp") if lead_ev else None
@@ -269,12 +290,17 @@ def _rate(run: _Run, alert: Alert) -> InvestigationReport:
     else:
         hypotheses.append(Hypothesis(name="Data quality", status="ruled_out", claim=Claim(
             text="No tracking gap on an event this metric depends on overlaps the period.")))
-    if harmful:
-        x = harmful[0]
-        hypotheses.append(Hypothesis(name="Running experiment", status="supported", claim=Claim(
-            text=f"Experiment {x['experiment_id']} overlaps these cohorts; its treatment changed "
-                 f"{label.lower()} by {pp(x['diff_pp'])}.",
-            citations=cite(ev_x, f"{x['experiment_id']}.diff_pp"))))
+    if harmful or minor:
+        x = (harmful or minor)[0]
+        xid = x["experiment_id"]
+        hypotheses.append(Hypothesis(
+            name="Running experiment", status="supported" if harmful else "inconclusive",
+            claim=Claim(
+                text=f"Experiment {xid} overlaps these cohorts; its treatment changed "
+                     f"{label.lower()} by {pp(x['diff_pp'])}, which accounts for about "
+                     f"{pp(x['expected_contribution_pp'])} of the {pp(diff)} change.",
+                citations=[*cite(ev_x, f"{xid}.diff_pp", f"{xid}.expected_contribution_pp"),
+                           *cite(ev_cmp, "diff_pp")])))
     else:
         hypotheses.append(Hypothesis(name="Running experiment", status="ruled_out", claim=Claim(
             text=f"No experiment overlapping these cohorts changed {label.lower()} "
@@ -349,27 +375,29 @@ def _tracking_gap(run: _Run, alert: Alert) -> InvestigationReport:
             text=text, citations=cite(ev, *(f"{key}.{v}.per_session_change_pct"
                                             for v in [worst, *others])))))
     findings.append(Finding(confidence="supported", claim=Claim(
-        text=f"Sessions continued normally ({rel(ses_change)}), so users kept using the app: "
-             "the events were not recorded, not the work.",
+        text=f"Sessions continued normally ({rel(ses_change)}), so users kept using the app; "
+             "either the events were not recorded or this action failed for them.",
         citations=cite(ev, f"{key}.sessions_change_pct"))))
     hypotheses = [
         Hypothesis(name="Real drop in usage", status="ruled_out", claim=Claim(
             text=f"{name(plat)} sessions changed by {rel(ses_change)}, which a real drop in "
                  "usage would not leave intact.",
             citations=cite(ev, f"{key}.sessions_change_pct"))),
-        Hypothesis(name="Tracking gap", status="supported", claim=Claim(
-            text=f"{event} events are missing while sessions continue.")),
+        Hypothesis(name="Tracking gap or functional break", status="supported", claim=Claim(
+            text=f"{event} events are missing while sessions continue. Event data alone cannot "
+                 f"tell a tracking bug from a release in which {event} itself fails.")),
     ]
     return InvestigationReport(
         alert_id=alert.alert_id, mode="rule_based",
         title=f"{event} events from {name(plat)} are missing: "
-              "a tracking gap, not a behavior change",
+              "a tracking gap or a functional break, not a drop in usage",
         summary=summary, findings=findings, hypotheses=hypotheses,
         limitations=[f"Activity and retention metrics for {name(plat)} on these days are "
                      "unreliable until the gap is fixed or excluded."],
         recommendation=Recommendation(kind="fix_tracking", claim=Claim(
-            text=f"Fix {event} tracking in the affected {name(plat)} version and exclude these "
-                 "days from behavioral comparisons.")),
+            text=f"First check that {event} works in the affected {name(plat)} version (QA, "
+                 "error logs); then fix the tracking and exclude these days from behavioral "
+                 "comparisons.")),
         conclusion_supported=False)
 
 

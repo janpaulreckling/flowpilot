@@ -30,6 +30,7 @@ class MonitorEvaluation(BaseModel):
     tests_performed: int
     decline_alerts: int
     improvement_notices: int
+    partially_explained: int = 0
     detected: dict[str, date | None]  # scenario -> first detection day
     unexplained_declines: list[Attributed]
     attributed: list[Attributed]
@@ -39,7 +40,22 @@ def _overlaps(a: Alert, start: date, end: date) -> bool:
     return a.first_period_start < end and start < a.last_period_end
 
 
+E3_RETENTION_EFFECT_PP = -3.0  # ground truth: about -3 pp in treatment (DATA_SCENARIOS.md)
+PARTIAL = " (partial)"
+
+
+def _e3_expected_pp(a: Alert) -> float:
+    """E3's expected effect on an aggregate cohort metric: half the cohorts are treated, and
+    only the part of the alert window inside E3's window counts."""
+    days = (a.last_period_end - a.first_period_start).days or 1
+    inside = (min(a.last_period_end, E3_END) - max(a.first_period_start, E3_START)).days
+    return 0.5 * E3_RETENTION_EFFECT_PP * max(inside, 0) / days
+
+
 def attribute(a: Alert) -> str | None:
+    """Scenario behind a decline alert. v2 (METHOD_V2.md, M9): full credit only when the
+    alert's segment is the scenario's segment or the scenario's expected contribution is at
+    least half of the observed change; otherwise the label ends with " (partial)"."""
     seg = a.segment
     if a.kind == "tracking_gap" and a.direction == "decline":
         if seg.get("platform") == "android" and _overlaps(a, S5_START, S5_END):
@@ -49,15 +65,18 @@ def attribute(a: Alert) -> str | None:
         if a.metric == "active_users" and a.data_quality_suspect:
             return "S5"
         return None
+    observed_pp = (a.observed - a.expected) * 100
     if a.metric == "activation_rate" and a.last_period_end > S1_START:
-        return "S1"
+        full = not seg or seg == {"signup_platform": "ios"}
+        return "S1" if full else "S1" + PARTIAL
     if (a.metric.endswith("retention") and seg.get("acquisition_channel") == "paid_social"
             and a.last_period_end > S2_START):
         return "S2"
     if a.metric.endswith("retention") and _overlaps(a, E3_START, E3_END):
-        return "E3"  # the treatment half of E3 lowers retention in these cohorts
+        full = abs(_e3_expected_pp(a)) >= 0.5 * abs(observed_pp)
+        return "E3" if full else "E3" + PARTIAL
     if a.metric.endswith("retention") and a.first_period_start >= S1_START:
-        return "S1"  # knock-on: fewer activated users retain less
+        return "S1" + PARTIAL  # knock-on: fewer activated users retain less
     return None
 
 
@@ -75,6 +94,8 @@ def evaluate(run: MonitorRun) -> MonitorEvaluation:
         tests_performed=run.tests_performed,
         decline_alerts=len(declines),
         improvement_notices=len(run.alerts) - len(declines),
+        partially_explained=sum(1 for x in attributed
+                                if x.explained_by and x.explained_by.endswith(PARTIAL)),
         detected=detected,
         unexplained_declines=[x for x in attributed if x.explained_by is None],
         attributed=attributed,

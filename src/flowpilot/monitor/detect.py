@@ -80,6 +80,14 @@ class Alert(BaseModel):
 class MonitorRun(BaseModel):
     tests_performed: int
     alerts: list[Alert]
+    rate_tests_overall: int = 0
+    rate_tests_segment: int = 0
+
+    @property
+    def expected_null_crossings(self) -> float:
+        """Statistical-threshold crossings expected by chance alone (two-sided, before the
+        practical and size filters): about 0.0027 per overall test, 0.00047 per segment test."""
+        return self.rate_tests_overall * 0.0027 + self.rate_tests_segment * 0.000465
 
 
 @dataclass
@@ -89,9 +97,11 @@ class _Week:
     den: int
 
 
-def _rate_detections(engine: MetricEngine, start: date) -> tuple[list[Detection], int]:
+def _rate_detections(engine: MetricEngine, start: date
+                     ) -> tuple[list[Detection], int, int]:
     detections: list[Detection] = []
     tests = 0
+    seg_tests = 0
     for metric, practical in RATE_METRICS.items():
         series: dict[tuple[tuple[str, str], ...], list[_Week]] = {}
         overall = engine.query(metric, start, engine.data_end)
@@ -119,12 +129,15 @@ def _rate_detections(engine: MetricEngine, start: date) -> tuple[list[Detection]
                     if n_obs < MIN_N[k]:
                         continue
                     tests += 1
+                    seg_tests += bool(seg)
                     obs = sum(w.num for w in window) / n_obs
                     p = sum(w.num for w in base) / n_base
                     rates = [w.num / w.den for w in base]
                     binom = statistics.fmean(p * (1 - p) / w.den for w in base)
                     s2x = max(0.0, statistics.variance(rates) - binom)
-                    se = math.sqrt(s2x / k + p * (1 - p) / n_obs + p * (1 - p) / n_base)
+                    # v2 (M1): the baseline mean also carries extra-binomial variance.
+                    se = math.sqrt(s2x * (1 / k + 1 / BASELINE_WEEKS)
+                                   + p * (1 - p) * (1 / n_obs + 1 / n_base))
                     if se == 0:
                         continue
                     z = (obs - p) / se
@@ -137,7 +150,7 @@ def _rate_detections(engine: MetricEngine, start: date) -> tuple[list[Detection]
                             segment=dict(seg), observed=obs, expected=p, z=z, n=n_obs,
                             direction="decline" if obs < p else "improvement",
                         ))
-    return detections, tests
+    return detections, tests, seg_tests
 
 
 def _daily(engine: MetricEngine, metric: str, start: date,
@@ -239,7 +252,7 @@ def _merge(detections: list[Detection], engine: MetricEngine) -> list[Alert]:
 
 
 def run_monitor(engine: MetricEngine, start: date) -> MonitorRun:
-    rate, n_rate = _rate_detections(engine, start)
+    rate, n_rate, n_seg = _rate_detections(engine, start)
     count, n_count = _count_detections(engine, start)
     alerts = _merge(rate + count, engine)
     gaps = [(a.segment.get("platform"), a.first_period_start, a.last_period_end)
@@ -251,4 +264,5 @@ def run_monitor(engine: MetricEngine, start: date) -> MonitorRun:
                 (plat is None or plat == gp)
                 and a.first_period_start < ge and gs < a.last_period_end
                 for gp, gs, ge in gaps)
-    return MonitorRun(tests_performed=n_rate + n_count, alerts=alerts)
+    return MonitorRun(tests_performed=n_rate + n_count, alerts=alerts,
+                      rate_tests_overall=n_rate - n_seg, rate_tests_segment=n_seg)

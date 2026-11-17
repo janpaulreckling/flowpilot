@@ -47,3 +47,6 @@ Reproduce with `uv run pytest tests/test_experiments.py tests/test_experiment_st
 Simulation checks: owner-level A/A coverage of the 95% CI within 93.5–96.5% over 2,000 runs; clustered user-level A/A coverage also within that band with the delta method, while the naive per-user interval covers less than 85%; SRM check flags fewer than 0.4% of fair 10,000-unit splits.
 
 Found by the tests: an interim analysis early in an experiment crashed when a guardrail had no mature cohort yet. Fixed: such guardrails are reported as "not measurable yet" and the analysis stays not decision-grade (regression test `test_interim_look_gives_no_verdict`).
+
+
+> **v2:** guardrails also need non-inferiority within 1 pp (Holm); verdicts unchanged. See [METHOD_V2.md](METHOD_V2.md).

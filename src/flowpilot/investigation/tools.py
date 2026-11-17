@@ -130,18 +130,35 @@ class Toolbox:
             facts[f"{seg}.share_change_pp"] = (s_c - s_b) * 100
             segs.append(entry)
         total = mix + rate
-        eligible = [s for s in segs if s.get("eligible")]
-        lead = max(eligible, key=lambda s: s["rate_contribution_pp"] * (-1 if total < 0 else 1),
-                   default=None)
-        others_diff = None
+
+        def rest_rates(exclude: Any) -> tuple[float, int, float, int]:
+            rc_n = sum(v[0] for k, v in cur.items() if k != exclude)
+            rc_d = sum(v[1] for k, v in cur.items() if k != exclude)
+            rb_n = sum(v[0] for k, v in base.items() if k != exclude)
+            rb_d = sum(v[1] for k, v in base.items() if k != exclude)
+            return rc_n / max(rc_d, 1), rc_d, rb_n / max(rb_d, 1), rb_d
+
+        # v2 (M3): a segment leads when its change differs from the rest's change beyond noise
+        # (z of the difference in differences), not because it is large.
+        for entry in segs:
+            if not entry.get("eligible"):
+                continue
+            rc, nc, rb, nb = rest_rates(entry["segment"])
+            r_c, r_b = entry["current_rate"], entry["baseline_rate"]
+            var = (r_c * (1 - r_c) / entry["current_n"] + r_b * (1 - r_b) / entry["baseline_n"]
+                   + rc * (1 - rc) / max(nc, 1) + rb * (1 - rb) / max(nb, 1))
+            z = ((r_c - r_b) - (rc - rb)) / var ** 0.5 if var > 0 else 0.0
+            entry["z_vs_rest"] = z
+            facts[f"{entry['segment']}.z_vs_rest"] = z
+            facts[f"{entry['segment']}.baseline_n"] = float(entry["baseline_n"])
+        direction = -1 if total < 0 else 1
+        eligible = [s for s in segs if "z_vs_rest" in s]
+        lead = max(eligible, key=lambda s: s["z_vs_rest"] * direction, default=None)
         if lead is not None:
-            rest_c = [(cur[s][0], cur[s][1]) for s in cur if s != lead["segment"]]
-            rest_b = [(base[s][0], base[s][1]) for s in base if s != lead["segment"]]
-            rc = sum(x for x, _ in rest_c) / max(sum(y for _, y in rest_c), 1)
-            rb = sum(x for x, _ in rest_b) / max(sum(y for _, y in rest_b), 1)
-            others_diff = (rc - rb) * 100
-            facts |= {"lead_share": lead["rate_contribution_pp"] / (total * 100) if total else 0.0,
-                      "lead_diff_pp": lead["diff_pp"], "others_diff_pp": others_diff}
+            rc, _, rb, _ = rest_rates(lead["segment"])
+            facts |= {"lead_z": lead["z_vs_rest"] * direction,
+                      "lead_share": lead["rate_contribution_pp"] / (total * 100) if total else 0.0,
+                      "lead_diff_pp": lead["diff_pp"], "others_diff_pp": (rc - rb) * 100}
         facts |= {"total_diff_pp": total * 100, "mix_effect_pp": mix * 100,
                   "rate_effect_pp": rate * 100,
                   "mix_share": mix / total if total else 0.0}
@@ -153,28 +170,51 @@ class Toolbox:
             facts=facts)
 
     def funnel(self, current_start: str | date, current_end: str | date,
-               segment: dict[str, list[str]]) -> ToolOutput:
-        """Onboarding funnel of one segment vs everyone else, in the same period."""
-        s, e = _d(current_start), _d(current_end)
-        seg = self.engine.funnel(s, e, _filters(segment))
-        everyone = self.engine.funnel(s, e)
+               segment: dict[str, list[str]], baseline_start: str | date | None = None,
+               baseline_end: str | date | None = None,
+               baseline_segment: dict[str, list[str]] | None = None) -> ToolOutput:
+        """Onboarding funnel of one segment vs everyone else. With a baseline period, also the
+        difference in differences per step: (segment - rest) now minus (segment - rest) before.
+        A segment that did not exist before (a new app version) uses `baseline_segment`."""
         steps = ["Signed up", "Project created", "Invite sent", "Teammate joined"]
-        n_seg = {x.step: x.users for x in seg.steps}
-        n_all = {x.step: x.users for x in everyone.steps}
-        n_rest = {k: n_all[k] - n_seg.get(k, 0) for k in steps}
+
+        def step_rates(s: date, e: date, seg_filter: dict[str, list[str]]
+                       ) -> tuple[dict[str, int], dict[str, int], bool]:
+            seg = self.engine.funnel(s, e, _filters(seg_filter))
+            everyone = self.engine.funnel(s, e)
+            n_seg = {x.step: x.users for x in seg.steps}
+            n_all = {x.step: x.users for x in everyone.steps}
+            return n_seg, {k: n_all.get(k, 0) - n_seg.get(k, 0) for k in steps}, seg.complete
+
+        n_seg, n_rest, complete = step_rates(_d(current_start), _d(current_end), segment)
+        before = None
+        if baseline_start and baseline_end:
+            before = step_rates(_d(baseline_start), _d(baseline_end),
+                                baseline_segment or segment)
         facts: dict[str, float] = {"segment_signups": float(n_seg.get(steps[0], 0)),
                                    "rest_signups": float(n_rest[steps[0]])}
         rows = []
+
+        def conv(n: dict[str, int], prev: str, step: str) -> float | None:
+            return n.get(step, 0) / n[prev] if n.get(prev) else None
+
         for prev, step in zip(steps, steps[1:], strict=False):
-            rs = n_seg[step] / n_seg[prev] if n_seg.get(prev) else None
-            rr = n_rest[step] / n_rest[prev] if n_rest[prev] else None
+            rs, rr = conv(n_seg, prev, step), conv(n_rest, prev, step)
             key = step.lower().replace(" ", "_")
+            row: dict[str, Any] = {"step": step, "segment_rate": rs, "rest_rate": rr}
             if rs is not None and rr is not None:
                 facts |= {f"{key}.segment_rate": rs, f"{key}.rest_rate": rr,
                           f"{key}.gap_pp": (rs - rr) * 100}
-            rows.append({"step": step, "segment_rate": rs, "rest_rate": rr})
+                if before is not None:
+                    bs, br = conv(before[0], prev, step), conv(before[1], prev, step)
+                    if bs is not None and br is not None:
+                        did = ((rs - rr) - (bs - br)) * 100
+                        facts |= {f"{key}.baseline_gap_pp": (bs - br) * 100, f"{key}.did_pp": did}
+                        row |= {"baseline_segment_rate": bs, "baseline_rest_rate": br,
+                                "did_pp": did}
+            rows.append(row)
         return ToolOutput(summary=f"funnel for {segment} vs everyone else",
-                          data={"segment": segment, "complete": seg.complete, "steps": rows},
+                          data={"segment": segment, "complete": complete, "steps": rows},
                           facts=facts)
 
     def retention_cohorts(self, start: str | date, end: str | date,
@@ -239,13 +279,29 @@ class Toolbox:
                ORDER BY started_at""", [_d(end), _d(start)]).fetchall()
         found: list[dict[str, Any]] = []
         overlap_facts: dict[str, float] = {}
+        window = con.execute(
+            "SELECT count(*) FROM owner_cohort WHERE signup_date >= ? AND signup_date < ?",
+            [_d(start), _d(end)]).fetchone()
+        n_window = int(window[0]) if window else 0
         for (xid,) in rows:
             cmp, _ = compare_arms(self.engine, metric, xid, self.engine.data_end)
             if cmp is None:
                 continue
+            treated = con.execute(
+                """SELECT count(*) FROM experiment_assignments a
+                   JOIN owner_cohort o USING (workspace_id)
+                   WHERE a.experiment_id = ? AND a.variant = 'treatment'
+                     AND o.signup_date >= ? AND o.signup_date < ?""",
+                [xid, _d(start), _d(end)]).fetchone()
+            share = (int(treated[0]) if treated else 0) / max(n_window, 1)
+            # v2 (M6): how much of the period's change this experiment can explain.
+            expected = share * cmp.diff * 100
             found.append({"experiment_id": xid, "diff_pp": cmp.diff * 100,
-                          "p_harm": cmp.p_harm, "p_two_sided": cmp.p_two_sided})
-            overlap_facts |= {f"{xid}.diff_pp": cmp.diff * 100, f"{xid}.p_harm": cmp.p_harm}
+                          "p_harm": cmp.p_harm, "p_two_sided": cmp.p_two_sided,
+                          "treated_share": share, "expected_contribution_pp": expected})
+            overlap_facts |= {f"{xid}.diff_pp": cmp.diff * 100, f"{xid}.p_harm": cmp.p_harm,
+                              f"{xid}.treated_share": share,
+                              f"{xid}.expected_contribution_pp": expected}
         return ToolOutput(summary=f"{len(found)} experiments overlap the period",
                           data={"metric": metric, "experiments": found}, facts=overlap_facts)
 
