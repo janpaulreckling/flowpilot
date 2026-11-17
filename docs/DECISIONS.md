@@ -157,3 +157,7 @@ The back-test produced 58 improvement notices from the count monitor (growth and
 ## D28 — Phase 5 approved (2026-11-17, approved)
 
 Metric layer, monitor and API as built; next is the experimentation engine (Phase 6).
+
+## D29 — Phase 6 approved; Phase 7 starts rule-based (2026-11-17, approved)
+
+Experimentation engine as built. Phase 7 builds the read-only tools, evidence tracking and the rule-based investigator first; the Claude agent follows once API access and the model are settled (D14).
