@@ -115,8 +115,8 @@ class Scenarios:
     # S2: new paid-social targeting from this date lowers long-run engagement (not activation).
     s2_channel: str = "paid_social"
     s2_start: date = date(2026, 9, 7)
-    s2_floor_multiplier: float = 0.70
-    s2_lifetime_multiplier: float = 0.60
+    s2_floor_multiplier: float = 0.77
+    s2_lifetime_multiplier: float = 0.69
     # S3: Timeline view ships on web only.
     s3_feature: str = "timeline_view"
     s3_launch: date = date(2026, 8, 17)

@@ -34,7 +34,7 @@ Alert card → alert detail (metric, size of change, band, affected cohort weeks
 
 Experiment list (status, days run vs. planned, verdict chip) → detail: pre-registration (hypothesis, primary metric, guardrails, MDE) → integrity (SRM, exposure checks) → result (effect with CI against the MDE band, guardrails table with Holm-adjusted results) → verdict with plain-English rationale → decision.
 
-## 5. Visual direction — options **[decision]**
+## 5. Visual direction (approved: D16 analyst memo)
 
 | | A. Analyst memo | B. Ops console | C. Clean SaaS |
 |---|---|---|---|
@@ -45,7 +45,7 @@ Experiment list (status, days run vs. planned, verdict chip) → detail: pre-reg
 
 Both light and dark mode will be supported in any direction.
 
-## 6. UI building blocks **[decision]**
+## 6. UI building blocks (approved: D18)
 
 Proposal: Tailwind + shadcn/ui (Radix-based components copied into the repo, fully restyleable, accessible) and Recharts for charts. Alternatives: Tremor (dashboard kit, faster but recognizable look), MUI (heavy, strong default look).
 

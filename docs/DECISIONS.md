@@ -116,6 +116,8 @@ At about 1,200 new workspaces per week the 4-week experiments would be underpowe
 
 ## D21 — S4 signal: integration connected at setup (2026-11-17, approved)
 
+Amends the frozen catalog D19 with product-owner approval; the calibration log in [DATA_SCENARIOS.md](DATA_SCENARIOS.md) records it.
+
 The misleading-correlation scenario uses an integration connected during setup (share depends only on company size) instead of "ever used". The first design also produced a within-size gap through survivorship bias (only active users can use a feature), which contradicted the documented ground truth. The survivorship trap of an "ever used" definition is kept as a documented lesson.
 
 - **Rejected:** keep "ever used" and widen the ground-truth statement.
@@ -125,3 +127,7 @@ The misleading-correlation scenario uses an integration connected during setup (
 Frontend skeleton plus the Decision Center and one investigation report in the analyst-memo look, so design feedback comes early. Content that is not built yet is labeled "Prototype – sample content" in the UI.
 
 - **Rejected:** analytics engine first (real numbers in the prototype, but later design feedback).
+
+## D23 — Experiments E1–E3 are not rolled out in the data period (2026-11-17, approved)
+
+Amends the frozen catalog D19 with product-owner approval: after each experiment ends, new workspaces get the control experience; the ship / don't-ship decisions are pending at the end of the data period, which is the state the Decision Center demo starts from. This matches the generator (effects apply only to treatment workspaces inside the experiment window).
