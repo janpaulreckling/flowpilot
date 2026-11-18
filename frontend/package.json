@@ -10,7 +10,7 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "preview": "vite preview",
-    "build:demo": "VITE_DEMO=1 tsc -b && VITE_DEMO=1 vite build --base=/flowpilot/ && cp dist/index.html dist/404.html",
+    "build:demo": "VITE_DEMO=1 tsc -b && VITE_DEMO=1 vite build --base=/flowpilot/ && cp dist/index.html dist/404.html && mkdir -p dist/case-study && cp dist/index.html dist/case-study/index.html",
     "e2e": "playwright test"
   },
   "dependencies": {
